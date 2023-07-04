@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -25,17 +26,19 @@ import (
 
 // HigressGatewaySpec defines the desired state of HigressGateway
 type HigressGatewaySpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	CRDCommonFields       `json:",inline"`
+	ContainerCommonFields `json:",inline"`
 
-	// Foo is an example field of HigressGateway. Edit higressgateway_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	NetWorkGateway        string             `json:"netWorkGateway"`
+	Skywalking            *Skywalking        `json:"skywalking"`
+	AutoScaling           *AutoScaling       `json:"autoScaling"`
+	RollingMaxSurge       intstr.IntOrString `json:"rollingMaxSurge"`
+	RollingMaxUnavailable intstr.IntOrString `json:"rollingMaxUnavailable"`
 }
 
 // HigressGatewayStatus defines the observed state of HigressGateway
 type HigressGatewayStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Deployed bool `json:"deployed"`
 }
 
 //+kubebuilder:object:root=true
@@ -57,6 +60,12 @@ type HigressGatewayList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []HigressGateway `json:"items"`
+}
+
+type Skywalking struct {
+	Enable  bool   `json:"enable"`
+	Port    *int32 `json:"port"`
+	Address string `json:"address"`
 }
 
 func init() {

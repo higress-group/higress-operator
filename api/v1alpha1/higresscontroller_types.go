@@ -25,17 +25,15 @@ import (
 
 // HigressControllerSpec defines the desired state of HigressController
 type HigressControllerSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	CRDCommonFields `json:",inline"`
 
-	// Foo is an example field of HigressController. Edit higresscontroller_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Controller ControllerSpec `json:"controller"`
+	Pilot      PilotSpec      `json:"pilot"`
 }
 
 // HigressControllerStatus defines the observed state of HigressController
 type HigressControllerStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Deployed bool `json:"deployed"`
 }
 
 //+kubebuilder:object:root=true
@@ -57,6 +55,28 @@ type HigressControllerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []HigressController `json:"items"`
+}
+
+type ControllerSpec struct {
+	ContainerCommonFields `json:",inline"`
+
+	GatewayName    string `json:"gatewayName"`
+	IngressClass   string `json:"ingressClass"`
+	WatchNamespace string `json:"watchNamespace"`
+}
+
+type PilotSpec struct {
+	ContainerCommonFields `json:",inline"`
+
+	TraceSampling                     string   `json:"traceSampling"`
+	JwksResolveExtraRootCA            string   `json:"jwksResolveExtraRootCA"`
+	Plugins                           []string `json:"plugins"`
+	KeepaliveMaxServerConnectionAge   int      `json:"keepaliveMaxServerConnectionAge"`
+	ClusterDomain                     string   `json:"clusterDomain"`
+	OneNamespace                      bool     `json:"oneNamespace"`
+	JwtPolicy                         string   `json:"jwtPolicy"`
+	EnableProtocolSniffingForOutbound bool     `json:"enableProtocolSniffingForOutbound"`
+	EnableProtocolSniffingForInbound  bool     `json:"enableProtocolSniffingForInbound"`
 }
 
 func init() {

@@ -1,0 +1,59 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - operator.higress.io
+  resources:
+  - higresscontrollers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.higress.io
+  resources:
+  - higresscontrollers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - operator.higress.io
+  resources:
+  - higresscontrollers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.higress.io
+  resources:
+  - higressgateways
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.higress.io
+  resources:
+  - higressgateways/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - operator.higress.io
+  resources:
+  - higressgateways/status
+  verbs:
+  - get
+  - patch
+  - update
