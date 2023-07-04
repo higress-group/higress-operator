@@ -1,0 +1,12 @@
+apiVersion: operator.higress.io/v1alpha1
+kind: HigressController
+metadata:
+  labels:
+    app.kubernetes.io/name: higresscontroller
+    app.kubernetes.io/instance: higresscontroller-sample
+    app.kubernetes.io/part-of: higressoperator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: higressoperator
+  name: higresscontroller-sample
+spec:
+  # TODO(user): Add fields here
