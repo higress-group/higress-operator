@@ -20,19 +20,19 @@ import (
 	"flag"
 	"os"
 
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	// to ensure that exec-entrypoint and run can make use of them.
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	operatorv1alpha1 "github.com/alibaba/higress/api/v1alpha1"
-	"github.com/alibaba/higress/internal/controller"
+	"github.com/alibaba/higress/internal/controller/higresscontroller"
+	"github.com/alibaba/higress/internal/controller/higressgateway"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -89,14 +89,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.HigressControllerReconciler{
+	if err = (&higresscontroller.HigressControllerReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "HigressController")
 		os.Exit(1)
 	}
-	if err = (&controller.HigressGatewayReconciler{
+	if err = (&higressgateway.HigressGatewayReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {

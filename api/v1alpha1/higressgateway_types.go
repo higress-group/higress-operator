@@ -34,6 +34,10 @@ type HigressGatewaySpec struct {
 	AutoScaling           *AutoScaling       `json:"autoScaling"`
 	RollingMaxSurge       intstr.IntOrString `json:"rollingMaxSurge"`
 	RollingMaxUnavailable intstr.IntOrString `json:"rollingMaxUnavailable"`
+	MeshConfig            MeshConfig         `json:"meshConfig"`
+	MeshNetworks          map[string]Network `json:"meshNetworks"`
+	VolumeWasmPlugins     []string           `json:"volumeWasmPlugins"`
+	HostNetwork           bool               `json:"hostNetwork"`
 }
 
 // HigressGatewayStatus defines the observed state of HigressGateway
@@ -63,8 +67,81 @@ type HigressGatewayList struct {
 }
 
 type Skywalking struct {
-	Enable  bool   `json:"enable"`
-	Port    *int32 `json:"port"`
+	Enable          bool   `json:"enable"`
+	Port            *int32 `json:"port"`
+	Address         string `json:"address"`
+	CustomBootStrap string `json:"customBootStrap"`
+}
+
+type MeshConfig struct {
+	TrustDomain              string         `json:"trustDomain"`
+	AccessLogEncoding        string         `json:"accessLogEncoding"`
+	AccessLogFile            string         `json:"accessLogFile"`
+	IngresssControllerMode   string         `json:"ingresssControllerMode"`
+	AccessLogFormat          string         `json:"accessLogFormat"`
+	DnsRefreshRate           *int64         `json:"dnsRefreshRate"`
+	EnableAutoMtls           bool           `json:"enableAutoMtls"`
+	EnablePrometheusMerge    bool           `json:"enablePrometheusMerge"`
+	ProtocolDetectionTimeout *int64         `json:"protocolDetectionTimeout"`
+	RootNamespace            string         `json:"rootNamespace"`
+	ConfigSources            []ConfigSource `json:"configSources"`
+	DefaultConfig            ProxyConfig    `json:"defaultConfig"`
+}
+
+type Network struct {
+	Endpoints []Endpoint `json:"endpoints"`
+	Gateways  []Gateway  `json:"gateways"`
+}
+type Endpoint struct {
+	FromCidr     string `json:"fromCidr"`
+	FromRegistry string `json:"fromRegistry"`
+}
+type Gateway struct {
+	Address             string `json:"address"`
+	RegistryServiceName string `json:"registryServiceName"`
+	Port                int32  `json:"port"`
+}
+type ConfigSource struct {
+	Address string `json:"address"`
+}
+type ProxyConfig struct {
+	DisableAlpnH2     bool               `json:"disableAlpnH2"`
+	MeshId            string             `json:"meshId"`
+	Tracing           *Tracing           `json:"tracing"`
+	DiscoveryAddress  string             `json:"discoveryAddress"`
+	ProxyStatsMatcher *ProxyStatsMatcher `json:"proxyStatsMatcher"`
+}
+type ProxyStatsMatcher struct {
+	InclusionPrefixes []string `json:"inclusionPrefixes"`
+	InclusionSuffixes []string `json:"inclusionSuffixes"`
+	InclusionRegexps  []string `json:"inclusionRegexps"`
+}
+
+type Tracing struct {
+	Zipkin          *TracingZipkin          `json:"zipkin"`
+	Lightstep       *TracingLightstep       `json:"lightstep"`
+	Datadog         *TracingDatadog         `json:"datadog"`
+	Stackdriver     *TracingStackdriver     `json:"stackdriver"`
+	OpenCensusAgent *TracingOpencensusagent `json:"openCensusAgent"`
+}
+
+type TracingZipkin struct {
+	Address string `json:"address"`
+}
+type TracingLightstep struct {
+	Address     string `json:"address"`
+	AccessToken string `json:"accessToken"`
+}
+type TracingDatadog struct {
+	Address string `json:"address"`
+}
+type TracingStackdriver struct {
+	Debug                    bool `json:"debug"`
+	MaxNumberOfAttributes    *int `json:"maxNumberOfAttributes"`
+	MaxNumberOfAnnotations   *int `json:"maxNumberOfAnnotations"`
+	MaxNumberOfMessageEvents *int `json:"maxNumberOfMessageEvents"`
+}
+type TracingOpencensusagent struct {
 	Address string `json:"address"`
 }
 

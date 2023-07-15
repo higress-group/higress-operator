@@ -5,24 +5,26 @@ import apiv1 "k8s.io/api/core/v1"
 // +k8s:deepcopy-gen=true
 
 type CRDCommonFields struct {
-	Replicas           *int32                   `json:"replicas,omitempty"`
-	SelectorLabels     map[string]string        `json:"selectorLabels"`
-	NodeSelector       map[string]string        `json:"nodeSelector"`
-	Affinity           apiv1.Affinity           `json:"affinity"`
-	Toleration         []apiv1.Toleration       `json:"toleration"`
-	Service            *Service                 `json:"service"`
-	RBAC               RBAC                     `json:"rbac"`
-	ServiceAccount     ServiceAccount           `json:"serviceAccount"`
-	AutoScaling        *AutoScaling             `json:"autoScaling"`
-	PodSecurityContext apiv1.PodSecurityContext `json:"podSecurityContext"`
+	Replicas           *int32                    `json:"replicas,omitempty"`
+	SelectorLabels     map[string]string         `json:"selectorLabels"`
+	NodeSelector       map[string]string         `json:"nodeSelector"`
+	Affinity           *apiv1.Affinity           `json:"affinity"`
+	Toleration         []apiv1.Toleration        `json:"toleration"`
+	Service            *Service                  `json:"service"`
+	RBAC               RBAC                      `json:"rbac"`
+	ServiceAccount     ServiceAccount            `json:"serviceAccount"`
+	AutoScaling        *AutoScaling              `json:"autoScaling"`
+	PodSecurityContext *apiv1.PodSecurityContext `json:"podSecurityContext"`
 
 	EnableStatus       bool         `json:"enableStatus"`
 	EnableHigressIstio bool         `json:"enableHigressIstio"`
 	EnableIstioAPI     bool         `json:"enableIstioAPI"`
+	IstioNamespace     string       `json:"istioNamespace"`
 	Revision           string       `json:"revision"`
 	Istiod             Istio        `json:"istiod"`
 	MultiCluster       MultiCluster `json:"multiCluster"`
 	Local              bool         `json:"local"`
+	JwtPolicy          string       `json:"jwtPolicy"`
 }
 
 // +k8s:deepcopy-gen=true

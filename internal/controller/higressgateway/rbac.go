@@ -1,4 +1,4 @@
-package higresscontroller
+package higressgateway
 
 import (
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -13,49 +13,14 @@ func defaultRules() []rbacv1.PolicyRule {
 		{
 			Verbs:     []string{"get", "list", "watch"},
 			APIGroups: []string{""},
-			Resources: []string{"services", "endpoints"},
-		},
-		{
-			Verbs:     []string{"get", "list", "watch"},
-			APIGroups: []string{""},
 			Resources: []string{"secrets"},
-		},
-		{
-			Verbs:     []string{"get", "list", "watch", "update", "create"},
-			APIGroups: []string{""},
-			Resources: []string{"configmaps"},
-		},
-		{
-			Verbs:     []string{"list", "watch"},
-			APIGroups: []string{""},
-			Resources: []string{"pods"},
-		},
-		{
-			Verbs:     []string{"create", "patch"},
-			APIGroups: []string{""},
-			Resources: []string{"events"},
-		},
-		{
-			Verbs:     []string{"get", "list", "watch"},
-			APIGroups: []string{"networking.k8s.io"},
-			Resources: []string{"ingresses"},
-		},
-		{
-			Verbs:     []string{"update"},
-			APIGroups: []string{"networking.k8s.io"},
-			Resources: []string{"ingresses/status"},
-		},
-		{
-			Verbs:     []string{"get", "create"},
-			APIGroups: []string{"networking.k8s.io"},
-			Resources: []string{"ingressclasses"},
 		},
 	}
 
 	return rules
 }
 
-func initClusterRole(cr *rbacv1.ClusterRole, instance *operatorv1alpha1.HigressController) *rbacv1.ClusterRole {
+func initClusterRole(cr *rbacv1.ClusterRole, instance *operatorv1alpha1.HigressGateway) *rbacv1.ClusterRole {
 	cr = &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: getServiceAccount(instance),
@@ -65,7 +30,7 @@ func initClusterRole(cr *rbacv1.ClusterRole, instance *operatorv1alpha1.HigressC
 	return cr
 }
 
-func muteClusterRole(cr *rbacv1.ClusterRole, instance *operatorv1alpha1.HigressController) controllerutil.MutateFn {
+func muteClusterRole(cr *rbacv1.ClusterRole, instance *operatorv1alpha1.HigressGateway) controllerutil.MutateFn {
 	return func() error {
 		cr.Name = getServiceAccount(instance)
 		cr.Rules = defaultRules()
@@ -73,7 +38,7 @@ func muteClusterRole(cr *rbacv1.ClusterRole, instance *operatorv1alpha1.HigressC
 	}
 }
 
-func initClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1alpha1.HigressController) *rbacv1.ClusterRoleBinding {
+func initClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1alpha1.HigressGateway) *rbacv1.ClusterRoleBinding {
 	crb = &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: getServiceAccount(instance),
@@ -95,14 +60,14 @@ func initClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1
 	return crb
 }
 
-func muteClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1alpha1.HigressController) controllerutil.MutateFn {
+func muteClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1alpha1.HigressGateway) controllerutil.MutateFn {
 	return func() error {
 		initClusterRoleBinding(crb, instance)
 		return nil
 	}
 }
 
-func initRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressController) *rbacv1.RoleBinding {
+func initRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressGateway) *rbacv1.RoleBinding {
 	rb = &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: getServiceAccount(instance),
@@ -123,14 +88,14 @@ func initRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressC
 	return rb
 }
 
-func muteRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressController) controllerutil.MutateFn {
+func muteRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressGateway) controllerutil.MutateFn {
 	return func() error {
 		initRoleBinding(rb, instance)
 		return nil
 	}
 }
 
-func initRole(role *rbacv1.Role, instance *operatorv1alpha1.HigressController) *rbacv1.Role {
+func initRole(role *rbacv1.Role, instance *operatorv1alpha1.HigressGateway) *rbacv1.Role {
 	role = &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getServiceAccount(instance),
@@ -142,7 +107,7 @@ func initRole(role *rbacv1.Role, instance *operatorv1alpha1.HigressController) *
 	return role
 }
 
-func muteRole(role *rbacv1.Role, instance *operatorv1alpha1.HigressController) controllerutil.MutateFn {
+func muteRole(role *rbacv1.Role, instance *operatorv1alpha1.HigressGateway) controllerutil.MutateFn {
 	return func() error {
 		initRole(role, instance)
 		return nil
