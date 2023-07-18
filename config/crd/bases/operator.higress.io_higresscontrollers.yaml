@@ -1348,7 +1348,6 @@ spec:
                 - gatewayName
                 - image
                 - ingressClass
-                - name
                 type: object
               enableHigressIstio:
                 type: boolean
@@ -1869,7 +1868,6 @@ spec:
                 - image
                 - jwtPolicy
                 - keepaliveMaxServerConnectionAge
-                - name
                 - oneNamespace
                 type: object
               podSecurityContext:
@@ -2138,10 +2136,6 @@ spec:
                   type:
                     type: string
                 required:
-                - annotations
-                - externalTrafficPolicy
-                - loadBalancerIP
-                - loadBalancerSourceRanges
                 - ports
                 - type
                 type: object
@@ -2199,13 +2193,9 @@ spec:
                 type: array
             required:
             - controller
-            - enableHigressIstio
-            - enableIstioAPI
-            - enableStatus
             - jwtPolicy
             - local
             - pilot
-            - selectorLabels
             type: object
           status:
             description: HigressControllerStatus defines the observed state of HigressController

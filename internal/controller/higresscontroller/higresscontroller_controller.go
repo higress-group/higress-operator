@@ -190,6 +190,12 @@ func (r *HigressControllerReconciler) createServiceAccount(ctx context.Context, 
 }
 
 func (r *HigressControllerReconciler) createRBAC(ctx context.Context, instance *operatorv1alpha1.HigressController, log logr.Logger) error {
+	if instance.Spec.RBAC == nil {
+		instance.Spec.RBAC = &operatorv1alpha1.RBAC{Enable: true}
+	}
+	if instance.Spec.ServiceAccount == nil {
+		instance.Spec.ServiceAccount = &operatorv1alpha1.ServiceAccount{Enable: true}
+	}
 	if !instance.Spec.RBAC.Enable || !instance.Spec.ServiceAccount.Enable {
 		return nil
 	}
@@ -218,7 +224,6 @@ func (r *HigressControllerReconciler) createDeployment(ctx context.Context, inst
 		return err
 	}
 
-	logger.Info("创建deployment成功, ")
 	return CreateOrUpdate(ctx, r.Client, "Deployment", deploy, muteDeployment(deploy, instance), logger)
 }
 

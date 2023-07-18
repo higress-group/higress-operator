@@ -11,7 +11,7 @@ import (
 )
 
 func initHPAv2(hpa *v2.HorizontalPodAutoscaler, instance *v1alpha1.HigressGateway) *v2.HorizontalPodAutoscaler {
-	hpa = &v2.HorizontalPodAutoscaler{
+	*hpa = v2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        instance.Name,
 			Namespace:   instance.Namespace,

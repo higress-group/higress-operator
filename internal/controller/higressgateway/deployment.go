@@ -18,7 +18,7 @@ const (
 )
 
 func initDeployment(deploy *appsv1.Deployment, instance *v1alpha1.HigressGateway) *appsv1.Deployment {
-	deploy = &appsv1.Deployment{
+	*deploy = appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        instance.Name,
 			Namespace:   instance.Namespace,
@@ -37,13 +37,17 @@ func initDeployment(deploy *appsv1.Deployment, instance *v1alpha1.HigressGateway
 				},
 			},
 			Template: apiv1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      instance.Name,
+					Namespace: instance.Namespace,
+					Labels:    instance.Spec.SelectorLabels,
+				},
 				Spec: apiv1.PodSpec{
-					ImagePullSecrets:   instance.Spec.ImagePullSecrets,
-					ServiceAccountName: instance.Spec.ServiceAccount.Name,
-					SecurityContext:    genSecurityContextForPod(instance),
-					NodeSelector:       instance.Spec.NodeSelector,
-					Affinity:           instance.Spec.Affinity,
-					Tolerations:        instance.Spec.Toleration,
+					ImagePullSecrets: instance.Spec.ImagePullSecrets,
+					SecurityContext:  genSecurityContextForPod(instance),
+					NodeSelector:     instance.Spec.NodeSelector,
+					Affinity:         instance.Spec.Affinity,
+					Tolerations:      instance.Spec.Toleration,
 					Containers: []apiv1.Container{
 						{
 							Name:            instanceName,
@@ -67,11 +71,17 @@ func initDeployment(deploy *appsv1.Deployment, instance *v1alpha1.HigressGateway
 		deploy.Spec.Template.Spec.Containers[0].Resources = *instance.Spec.Resources
 	}
 
-	// hostnetwork
+	// hostNetwork
 	if instance.Spec.HostNetwork {
 		deploy.Spec.Template.Spec.HostNetwork = instance.Spec.HostNetwork
 		deploy.Spec.Template.Spec.DNSPolicy = apiv1.DNSClusterFirstWithHostNet
 	}
+
+	// serviceAccount
+	if sa := instance.Spec.ServiceAccount; sa != nil && sa.Enable {
+		deploy.Spec.Template.Spec.ServiceAccountName = sa.Name
+	}
+
 	return deploy
 }
 
@@ -245,7 +255,7 @@ func genArgs(instance *v1alpha1.HigressGateway) []string {
 		"proxy",
 		"router",
 		"--domain",
-		instance.Namespace + "svc.cluster.local",
+		instance.Namespace + ".svc.cluster.local",
 		"--proxyLogLevel=warning",
 		"--proxyComponetLogLevel=misc:error",
 		"--log_output_level=all:info",
@@ -337,7 +347,7 @@ func genVolumes(instance *v1alpha1.HigressGateway) []apiv1.Volume {
 	var volumes []apiv1.Volume
 
 	volumes = append(volumes, apiv1.Volume{
-		Name: "istio-ca-root-cert",
+		Name: "config",
 		VolumeSource: apiv1.VolumeSource{
 			ConfigMap: &apiv1.ConfigMapVolumeSource{
 				LocalObjectReference: apiv1.LocalObjectReference{
@@ -347,17 +357,17 @@ func genVolumes(instance *v1alpha1.HigressGateway) []apiv1.Volume {
 		},
 	})
 
-	caRootCertName := "istio-ca-root-cert"
+	caRootCertName := "higress-ca-root-cert"
 	if instance.Spec.EnableHigressIstio {
-		caRootCertName = "higress-ca-root-cert"
+		caRootCertName = "istio-ca-root-cert"
 	}
 	mode := int32(420)
-	quantiy := resource.MustParse("1m")
+	quantity := resource.MustParse("1m")
 	expirationSeconds := int64(43200)
 	hostPathType := apiv1.HostPathDirectory
 	volumes = append(volumes, []apiv1.Volume{
 		{
-			Name: "config",
+			Name: "istio-ca-root-cert",
 			VolumeSource: apiv1.VolumeSource{
 				ConfigMap: &apiv1.ConfigMapVolumeSource{
 					LocalObjectReference: apiv1.LocalObjectReference{
@@ -402,15 +412,15 @@ func genVolumes(instance *v1alpha1.HigressGateway) []apiv1.Volume {
 							Path: "cpu-request",
 							ResourceFieldRef: &apiv1.ResourceFieldSelector{
 								ContainerName: instanceName,
-								Divisor:       quantiy,
-								Resource:      "request.cpu",
+								Divisor:       quantity,
+								Resource:      "requests.cpu",
 							},
 						},
 						{
 							Path: "cpu-limit",
 							ResourceFieldRef: &apiv1.ResourceFieldSelector{
 								ContainerName: instanceName,
-								Divisor:       quantiy,
+								Divisor:       quantity,
 								Resource:      "limits.cpu",
 							},
 						},

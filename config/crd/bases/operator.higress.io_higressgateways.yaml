@@ -992,10 +992,6 @@ spec:
                             items:
                               type: string
                             type: array
-                        required:
-                        - inclusionPrefixes
-                        - inclusionRegexps
-                        - inclusionSuffixes
                         type: object
                       tracing:
                         properties:
@@ -1035,9 +1031,6 @@ spec:
                                 type: integer
                             required:
                             - debug
-                            - maxNumberOfAnnotations
-                            - maxNumberOfAttributes
-                            - maxNumberOfMessageEvents
                             type: object
                           zipkin:
                             properties:
@@ -1046,32 +1039,18 @@ spec:
                             required:
                             - address
                             type: object
-                        required:
-                        - datadog
-                        - lightstep
-                        - openCensusAgent
-                        - stackdriver
-                        - zipkin
                         type: object
-                    required:
-                    - disableAlpnH2
-                    - discoveryAddress
-                    - meshId
-                    - proxyStatsMatcher
-                    - tracing
                     type: object
                   dnsRefreshRate:
-                    format: int64
-                    type: integer
+                    type: string
                   enableAutoMtls:
                     type: boolean
                   enablePrometheusMerge:
                     type: boolean
-                  ingresssControllerMode:
+                  ingressControllerMode:
                     type: string
                   protocolDetectionTimeout:
-                    format: int64
-                    type: integer
+                    type: string
                   rootNamespace:
                     type: string
                   trustDomain:
@@ -1085,9 +1064,8 @@ spec:
                 - dnsRefreshRate
                 - enableAutoMtls
                 - enablePrometheusMerge
-                - ingresssControllerMode
+                - ingressControllerMode
                 - protocolDetectionTimeout
-                - rootNamespace
                 - trustDomain
                 type: object
               meshNetworks:
@@ -1810,10 +1788,6 @@ spec:
                   type:
                     type: string
                 required:
-                - annotations
-                - externalTrafficPolicy
-                - loadBalancerIP
-                - loadBalancerSourceRanges
                 - ports
                 - type
                 type: object
@@ -1842,10 +1816,7 @@ spec:
                     format: int32
                     type: integer
                 required:
-                - address
-                - customBootStrap
                 - enable
-                - port
                 type: object
               toleration:
                 items:
@@ -1891,23 +1862,9 @@ spec:
                   type: string
                 type: array
             required:
-            - autoScaling
-            - enableHigressIstio
-            - enableIstioAPI
-            - enableStatus
-            - hostNetwork
             - image
             - jwtPolicy
             - local
-            - meshConfig
-            - meshNetworks
-            - name
-            - netWorkGateway
-            - rollingMaxSurge
-            - rollingMaxUnavailable
-            - selectorLabels
-            - skywalking
-            - volumeWasmPlugins
             type: object
           status:
             description: HigressGatewayStatus defines the observed state of HigressGateway

@@ -8,7 +8,7 @@ type CRDCommonFields struct {
 	// +kubebuilder:validation:Optional
 	// +nullable
 	Replicas *int32 `json:"replicas,omitempty"`
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	SelectorLabels map[string]string `json:"selectorLabels"`
 	// +kubebuilder:validation:Optional
 	NodeSelector map[string]string `json:"nodeSelector"`
@@ -21,9 +21,9 @@ type CRDCommonFields struct {
 	// +nullable
 	Service *Service `json:"service"`
 	// +kubebuilder:validation:Optional
-	RBAC RBAC `json:"rbac"`
+	RBAC *RBAC `json:"rbac"`
 	// +kubebuilder:validation:Optional
-	ServiceAccount ServiceAccount `json:"serviceAccount"`
+	ServiceAccount *ServiceAccount `json:"serviceAccount"`
 	// +kubebuilder:validation:Optional
 	// +nullable
 	AutoScaling *AutoScaling `json:"autoScaling"`
@@ -31,9 +31,12 @@ type CRDCommonFields struct {
 	// +nullable
 	PodSecurityContext *apiv1.PodSecurityContext `json:"podSecurityContext"`
 
-	EnableStatus       bool `json:"enableStatus"`
+	// +kubebuilder:validation:Optional
+	EnableStatus bool `json:"enableStatus"`
+	// +kubebuilder:validation:Optional
 	EnableHigressIstio bool `json:"enableHigressIstio"`
-	EnableIstioAPI     bool `json:"enableIstioAPI"`
+	// +kubebuilder:validation:Optional
+	EnableIstioAPI bool `json:"enableIstioAPI"`
 	// +kubebuilder:validation:Optional
 	IstioNamespace string `json:"istioNamespace"`
 	// +kubebuilder:validation:Optional
@@ -52,6 +55,7 @@ type CRDCommonFields struct {
 // +k8s:deepcopy-gen=true
 
 type ContainerCommonFields struct {
+	// +kubebuilder:validation:Optional
 	Name string `json:"name"`
 	// +kubebuilder:validation:Optional
 	Annotations map[string]string `json:"annotations"`
@@ -124,10 +128,14 @@ type MultiCluster struct {
 // +k8s:deepcopy-gen=true
 
 type Service struct {
-	Type                     string              `json:"type"`
-	Ports                    []apiv1.ServicePort `json:"ports"`
-	Annotations              map[string]string   `json:"annotations"`
-	LoadBalancerIP           string              `json:"loadBalancerIP"`
-	LoadBalancerSourceRanges []string            `json:"loadBalancerSourceRanges"`
-	ExternalTrafficPolicy    string              `json:"externalTrafficPolicy"`
+	Type  string              `json:"type"`
+	Ports []apiv1.ServicePort `json:"ports"`
+	// +kubebuilder:validation:Optional
+	Annotations map[string]string `json:"annotations"`
+	// +kubebuilder:validation:Optional
+	LoadBalancerIP string `json:"loadBalancerIP"`
+	// +kubebuilder:validation:Optional
+	LoadBalancerSourceRanges []string `json:"loadBalancerSourceRanges"`
+	// +kubebuilder:validation:Optional
+	ExternalTrafficPolicy string `json:"externalTrafficPolicy"`
 }

@@ -12,7 +12,7 @@ import (
 )
 
 func initGatewayConfigMap(cm *apiv1.ConfigMap, instance *operatorv1alpha1.HigressGateway) (*apiv1.ConfigMap, error) {
-	cm = &apiv1.ConfigMap{
+	*cm = apiv1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "higress-config",
 			Namespace: instance.Namespace,
@@ -21,7 +21,7 @@ func initGatewayConfigMap(cm *apiv1.ConfigMap, instance *operatorv1alpha1.Higres
 	}
 
 	var (
-		data              map[string]string
+		data              = map[string]string{}
 		err               error
 		meshNetworksBytes []byte
 		networksBytes     []byte
@@ -57,7 +57,7 @@ func initGatewayConfigMap(cm *apiv1.ConfigMap, instance *operatorv1alpha1.Higres
 }
 
 func initSkywalkingConfigMap(cm *apiv1.ConfigMap, instance *operatorv1alpha1.HigressGateway) (*apiv1.ConfigMap, error) {
-	cm = &apiv1.ConfigMap{
+	*cm = apiv1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "todo(lql)",
 			Namespace: instance.Namespace,

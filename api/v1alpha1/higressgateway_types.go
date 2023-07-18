@@ -29,15 +29,22 @@ type HigressGatewaySpec struct {
 	CRDCommonFields       `json:",inline"`
 	ContainerCommonFields `json:",inline"`
 
-	NetWorkGateway        string             `json:"netWorkGateway"`
-	Skywalking            *Skywalking        `json:"skywalking"`
-	AutoScaling           *AutoScaling       `json:"autoScaling"`
-	RollingMaxSurge       intstr.IntOrString `json:"rollingMaxSurge"`
+	// +kubebuilder:validation:Optional
+	NetWorkGateway string `json:"netWorkGateway"`
+	// +kubebuilder:validation:Optional
+	Skywalking *Skywalking `json:"skywalking"`
+	// +kubebuilder:validation:Optional
+	RollingMaxSurge intstr.IntOrString `json:"rollingMaxSurge"`
+	// +kubebuilder:validation:Optional
 	RollingMaxUnavailable intstr.IntOrString `json:"rollingMaxUnavailable"`
-	MeshConfig            MeshConfig         `json:"meshConfig"`
-	MeshNetworks          map[string]Network `json:"meshNetworks"`
-	VolumeWasmPlugins     []string           `json:"volumeWasmPlugins"`
-	HostNetwork           bool               `json:"hostNetwork"`
+	// +kubebuilder:validation:Optional
+	MeshConfig MeshConfig `json:"meshConfig"`
+	// +kubebuilder:validation:Optional
+	MeshNetworks map[string]Network `json:"meshNetworks"`
+	// +kubebuilder:validation:Optional
+	VolumeWasmPlugins []string `json:"volumeWasmPlugins"`
+	// +kubebuilder:validation:Optional
+	HostNetwork bool `json:"hostNetwork"`
 }
 
 // HigressGatewayStatus defines the observed state of HigressGateway
@@ -67,9 +74,12 @@ type HigressGatewayList struct {
 }
 
 type Skywalking struct {
-	Enable          bool   `json:"enable"`
-	Port            *int32 `json:"port"`
-	Address         string `json:"address"`
+	Enable bool `json:"enable"`
+	// +kubebuilder:validation:Optional
+	Port *int32 `json:"port"`
+	// +kubebuilder:validation:Optional
+	Address string `json:"address"`
+	// +kubebuilder:validation:Optional
 	CustomBootStrap string `json:"customBootStrap"`
 }
 
@@ -77,15 +87,16 @@ type MeshConfig struct {
 	TrustDomain              string         `json:"trustDomain"`
 	AccessLogEncoding        string         `json:"accessLogEncoding"`
 	AccessLogFile            string         `json:"accessLogFile"`
-	IngresssControllerMode   string         `json:"ingresssControllerMode"`
+	IngressControllerMode    string         `json:"ingressControllerMode"`
 	AccessLogFormat          string         `json:"accessLogFormat"`
-	DnsRefreshRate           *int64         `json:"dnsRefreshRate"`
+	DnsRefreshRate           string         `json:"dnsRefreshRate"`
 	EnableAutoMtls           bool           `json:"enableAutoMtls"`
 	EnablePrometheusMerge    bool           `json:"enablePrometheusMerge"`
-	ProtocolDetectionTimeout *int64         `json:"protocolDetectionTimeout"`
-	RootNamespace            string         `json:"rootNamespace"`
+	ProtocolDetectionTimeout string         `json:"protocolDetectionTimeout"`
 	ConfigSources            []ConfigSource `json:"configSources"`
 	DefaultConfig            ProxyConfig    `json:"defaultConfig"`
+	// +kubebuilder:validation:Optional
+	RootNamespace string `json:"rootNamespace"`
 }
 
 type Network struct {
@@ -105,23 +116,36 @@ type ConfigSource struct {
 	Address string `json:"address"`
 }
 type ProxyConfig struct {
-	DisableAlpnH2     bool               `json:"disableAlpnH2"`
-	MeshId            string             `json:"meshId"`
-	Tracing           *Tracing           `json:"tracing"`
-	DiscoveryAddress  string             `json:"discoveryAddress"`
+	// +kubebuilder:validation:Optional
+	DisableAlpnH2 bool `json:"disableAlpnH2"`
+	// +kubebuilder:validation:Optional
+	MeshId string `json:"meshId"`
+	// +kubebuilder:validation:Optional
+	Tracing *Tracing `json:"tracing"`
+	// +kubebuilder:validation:Optional
+	DiscoveryAddress string `json:"discoveryAddress"`
+	// +kubebuilder:validation:Optional
 	ProxyStatsMatcher *ProxyStatsMatcher `json:"proxyStatsMatcher"`
 }
 type ProxyStatsMatcher struct {
+	// +kubebuilder:validation:Optional
 	InclusionPrefixes []string `json:"inclusionPrefixes"`
+	// +kubebuilder:validation:Optional
 	InclusionSuffixes []string `json:"inclusionSuffixes"`
-	InclusionRegexps  []string `json:"inclusionRegexps"`
+	// +kubebuilder:validation:Optional
+	InclusionRegexps []string `json:"inclusionRegexps"`
 }
 
 type Tracing struct {
-	Zipkin          *TracingZipkin          `json:"zipkin"`
-	Lightstep       *TracingLightstep       `json:"lightstep"`
-	Datadog         *TracingDatadog         `json:"datadog"`
-	Stackdriver     *TracingStackdriver     `json:"stackdriver"`
+	// +kubebuilder:validation:Optional
+	Zipkin *TracingZipkin `json:"zipkin"`
+	// +kubebuilder:validation:Optional
+	Lightstep *TracingLightstep `json:"lightstep"`
+	// +kubebuilder:validation:Optional
+	Datadog *TracingDatadog `json:"datadog"`
+	// +kubebuilder:validation:Optional
+	Stackdriver *TracingStackdriver `json:"stackdriver"`
+	// +kubebuilder:validation:Optional
 	OpenCensusAgent *TracingOpencensusagent `json:"openCensusAgent"`
 }
 
@@ -136,9 +160,12 @@ type TracingDatadog struct {
 	Address string `json:"address"`
 }
 type TracingStackdriver struct {
-	Debug                    bool `json:"debug"`
-	MaxNumberOfAttributes    *int `json:"maxNumberOfAttributes"`
-	MaxNumberOfAnnotations   *int `json:"maxNumberOfAnnotations"`
+	Debug bool `json:"debug"`
+	// +kubebuilder:validation:Optional
+	MaxNumberOfAttributes *int `json:"maxNumberOfAttributes"`
+	// +kubebuilder:validation:Optional
+	MaxNumberOfAnnotations *int `json:"maxNumberOfAnnotations"`
+	// +kubebuilder:validation:Optional
 	MaxNumberOfMessageEvents *int `json:"maxNumberOfMessageEvents"`
 }
 type TracingOpencensusagent struct {

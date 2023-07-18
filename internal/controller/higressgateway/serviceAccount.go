@@ -8,7 +8,7 @@ import (
 )
 
 func initServiceAccount(sa *apiv1.ServiceAccount, instance *v1alpha1.HigressGateway) *apiv1.ServiceAccount {
-	sa = &apiv1.ServiceAccount{
+	*sa = apiv1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   instance.Namespace,
 			Name:        getServiceAccount(instance),
@@ -24,6 +24,5 @@ func getServiceAccount(instance *v1alpha1.HigressGateway) string {
 	if instance.Spec.ServiceAccount.Name != "" {
 		return instance.Spec.ServiceAccount.Name
 	}
-
 	return instance.Name
 }

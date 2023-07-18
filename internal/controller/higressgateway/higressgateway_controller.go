@@ -19,7 +19,6 @@ package higressgateway
 import (
 	"context"
 	"fmt"
-
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -27,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -75,6 +75,8 @@ func (r *HigressGatewayReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
+	r.setDefaultValues(instance)
+
 	// if deletionTimeStamp is not nil, it means is marked to be deleted
 	if instance.GetDeletionTimestamp() != nil {
 		if controllerutil.ContainsFinalizer(instance, finalizer) {
@@ -118,6 +120,10 @@ func (r *HigressGatewayReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
+	if err = r.createConfigMap(ctx, instance, logger); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	if err = r.createDeployment(ctx, instance, logger); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -140,6 +146,9 @@ func (r *HigressGatewayReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 func (r *HigressGatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.HigressGateway{}).
+		Owns(&appsv1.Deployment{}).
+		Owns(&apiv1.Service{}).
+		Owns(&apiv1.ServiceAccount{}).
 		Complete(r)
 }
 
@@ -155,55 +164,43 @@ func (r *HigressGatewayReconciler) createServiceAccount(ctx context.Context, ins
 	}
 
 	if !exists {
-		logger.Info("create serviceAccount for HigressGateway(%v)", instance.Name)
+		logger.Info(fmt.Sprintf("create serviceAccount for HigressGateway(%v)", instance.Name))
 	}
 
 	return nil
 }
 
 func (r *HigressGatewayReconciler) createRBAC(ctx context.Context, instance *operatorv1alpha1.HigressGateway, logger logr.Logger) error {
+	if instance.Spec.RBAC == nil {
+		instance.Spec.RBAC = &operatorv1alpha1.RBAC{Enable: true}
+	}
+	if instance.Spec.ServiceAccount == nil {
+		instance.Spec.ServiceAccount = &operatorv1alpha1.ServiceAccount{Enable: true}
+	}
+	if !instance.Spec.RBAC.Enable || !instance.Spec.ServiceAccount.Enable {
+		return nil
+	}
+
 	var (
-		role *rbacv1.Role
-		rb   *rbacv1.RoleBinding
-		cr   *rbacv1.ClusterRole
-		crb  *rbacv1.ClusterRoleBinding
+		cr     = &rbacv1.ClusterRole{}
+		crb    = &rbacv1.ClusterRoleBinding{}
+		exists bool
+		err    error
 	)
-
-	// reconcile role
-	role = initRole(role, instance)
-	exists, err := CreateIfNotExits(ctx, r.Client, role)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		logger.Info("create Role for HigressGateway(%v)", instance.Name)
-	}
-
-	// reconcile roleBinding
-	rb = initRoleBinding(rb, instance)
-	if exists, err = CreateIfNotExits(ctx, r.Client, rb); err != nil {
-		return err
-	}
-	if !exists {
-		logger.Info("create clusterRole for HigressGateway(%v)", instance.Name)
-	}
-
 	// reconcile clusterRole
 	cr = initClusterRole(cr, instance)
 	if exists, err = CreateIfNotExits(ctx, r.Client, cr); err != nil {
 		return err
 	}
 	if !exists {
-		logger.Info("create clusterRole for HigressGateway(%v)", instance.Name)
+		logger.Info(fmt.Sprintf("create clusterRole for HigressGateway(%v)", instance.Name))
 	}
 
 	// reconcile clusterRoleBinding
-	crb = initClusterRoleBinding(crb, instance)
-	if exists, err = CreateIfNotExits(ctx, r.Client, crb); err != nil {
+	initClusterRoleBinding(crb, instance)
+	if err = CreateOrUpdate(ctx, r.Client, "clusterRoleBinding", crb,
+		muteClusterRoleBinding(crb, instance), logger); err != nil {
 		return err
-	}
-	if !exists {
-		logger.Info("create clusterRole for HigressGateway(%v)", instance.Name)
 	}
 
 	return nil
@@ -230,7 +227,6 @@ func (r *HigressGatewayReconciler) createService(ctx context.Context, instance *
 func (r *HigressGatewayReconciler) finalizeHigressGateway(instance *operatorv1alpha1.HigressGateway, logger logr.Logger) error {
 	var (
 		ctx = context.TODO()
-		rb  = &rbacv1.RoleBinding{}
 		crb = &rbacv1.ClusterRoleBinding{}
 	)
 
@@ -251,20 +247,71 @@ func (r *HigressGatewayReconciler) finalizeHigressGateway(instance *operatorv1al
 		return err
 	}
 
-	nn = types.NamespacedName{Namespace: instance.Namespace, Name: name}
-	if err := r.Get(ctx, nn, rb); err != nil {
+	return nil
+}
+
+func (r *HigressGatewayReconciler) createConfigMap(ctx context.Context, instance *operatorv1alpha1.HigressGateway, logger logr.Logger) error {
+	gatewayConfigMap, err := initGatewayConfigMap(&apiv1.ConfigMap{}, instance)
+	if err != nil {
+		return err
+	}
+	if err = CreateOrUpdate(ctx, r.Client, "gatewayConfigMap", gatewayConfigMap,
+		muteConfigMap(gatewayConfigMap, instance, initGatewayConfigMap), logger); err != nil {
 		return err
 	}
 
-	subjects = []rbacv1.Subject{}
-	for _, subject := range crb.Subjects {
-		if subject.Name != name || subject.Namespace != instance.Namespace {
-			subjects = append(subjects, subject)
+	if instance.Spec.Skywalking.Enable {
+		skywalkingConfigMap, err := initSkywalkingConfigMap(&apiv1.ConfigMap{}, instance)
+		if err != nil {
+			return err
+		}
+		if err = CreateOrUpdate(ctx, r.Client, "skywalkingConfigMap", skywalkingConfigMap,
+			muteConfigMap(gatewayConfigMap, instance, initSkywalkingConfigMap), logger); err != nil {
+			return err
 		}
 	}
-	rb.Subjects = subjects
-	if err := r.Update(ctx, crb); err != nil {
-		return err
-	}
+
 	return nil
+}
+
+func (r *HigressGatewayReconciler) setDefaultValues(instance *operatorv1alpha1.HigressGateway) {
+	// serviceAccount
+	if instance.Spec.ServiceAccount == nil {
+		instance.Spec.ServiceAccount = &operatorv1alpha1.ServiceAccount{Enable: true}
+	}
+	// replicas
+	if instance.Spec.Replicas == nil {
+		replicas := int32(1)
+		instance.Spec.Replicas = &replicas
+	}
+	// selectorLabels
+	if len(instance.Spec.SelectorLabels) == 0 {
+		instance.Spec.SelectorLabels = map[string]string{
+			"app": "higress-gateway",
+		}
+	}
+	// service
+	if instance.Spec.Service == nil {
+		instance.Spec.Service = &operatorv1alpha1.Service{
+			Type: "LoadBalancer",
+			Ports: []apiv1.ServicePort{
+				{
+					Name:       "http2",
+					Port:       80,
+					Protocol:   "TCP",
+					TargetPort: intstr.FromInt(80),
+				},
+				{
+					Name:       "https",
+					Port:       443,
+					Protocol:   "TCP",
+					TargetPort: intstr.FromInt(443),
+				},
+			},
+		}
+	}
+	// skywalking
+	if instance.Spec.Skywalking == nil {
+		instance.Spec.Skywalking = &operatorv1alpha1.Skywalking{Enable: false}
+	}
 }
