@@ -37,6 +37,7 @@ spec:
             properties:
               affinity:
                 description: Affinity is a group of affinity scheduling rules.
+                nullable: true
                 properties:
                   nodeAffinity:
                     description: Describes node affinity scheduling rules for the
@@ -868,6 +869,7 @@ spec:
                   type: string
                 type: object
               autoScaling:
+                nullable: true
                 properties:
                   enable:
                     type: boolean
@@ -896,6 +898,8 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              hostNetwork:
+                type: boolean
               image:
                 properties:
                   imagePullPolicy:
@@ -928,20 +932,202 @@ spec:
                   type: object
                   x-kubernetes-map-type: atomic
                 type: array
+              istioNamespace:
+                type: string
               istiod:
+                nullable: true
                 properties:
                   enableAnalysis:
                     type: boolean
                 required:
                 - enableAnalysis
                 type: object
+              jwtPolicy:
+                enum:
+                - third-party-jwt
+                - first-party-jwt
+                type: string
               local:
                 type: boolean
               logAsJson:
                 type: boolean
               logLevel:
                 type: string
+              meshConfig:
+                properties:
+                  accessLogEncoding:
+                    type: string
+                  accessLogFile:
+                    type: string
+                  accessLogFormat:
+                    type: string
+                  configSources:
+                    items:
+                      properties:
+                        address:
+                          type: string
+                      required:
+                      - address
+                      type: object
+                    type: array
+                  defaultConfig:
+                    properties:
+                      disableAlpnH2:
+                        type: boolean
+                      discoveryAddress:
+                        type: string
+                      meshId:
+                        type: string
+                      proxyStatsMatcher:
+                        properties:
+                          inclusionPrefixes:
+                            items:
+                              type: string
+                            type: array
+                          inclusionRegexps:
+                            items:
+                              type: string
+                            type: array
+                          inclusionSuffixes:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - inclusionPrefixes
+                        - inclusionRegexps
+                        - inclusionSuffixes
+                        type: object
+                      tracing:
+                        properties:
+                          datadog:
+                            properties:
+                              address:
+                                type: string
+                            required:
+                            - address
+                            type: object
+                          lightstep:
+                            properties:
+                              accessToken:
+                                type: string
+                              address:
+                                type: string
+                            required:
+                            - accessToken
+                            - address
+                            type: object
+                          openCensusAgent:
+                            properties:
+                              address:
+                                type: string
+                            required:
+                            - address
+                            type: object
+                          stackdriver:
+                            properties:
+                              debug:
+                                type: boolean
+                              maxNumberOfAnnotations:
+                                type: integer
+                              maxNumberOfAttributes:
+                                type: integer
+                              maxNumberOfMessageEvents:
+                                type: integer
+                            required:
+                            - debug
+                            - maxNumberOfAnnotations
+                            - maxNumberOfAttributes
+                            - maxNumberOfMessageEvents
+                            type: object
+                          zipkin:
+                            properties:
+                              address:
+                                type: string
+                            required:
+                            - address
+                            type: object
+                        required:
+                        - datadog
+                        - lightstep
+                        - openCensusAgent
+                        - stackdriver
+                        - zipkin
+                        type: object
+                    required:
+                    - disableAlpnH2
+                    - discoveryAddress
+                    - meshId
+                    - proxyStatsMatcher
+                    - tracing
+                    type: object
+                  dnsRefreshRate:
+                    format: int64
+                    type: integer
+                  enableAutoMtls:
+                    type: boolean
+                  enablePrometheusMerge:
+                    type: boolean
+                  ingresssControllerMode:
+                    type: string
+                  protocolDetectionTimeout:
+                    format: int64
+                    type: integer
+                  rootNamespace:
+                    type: string
+                  trustDomain:
+                    type: string
+                required:
+                - accessLogEncoding
+                - accessLogFile
+                - accessLogFormat
+                - configSources
+                - defaultConfig
+                - dnsRefreshRate
+                - enableAutoMtls
+                - enablePrometheusMerge
+                - ingresssControllerMode
+                - protocolDetectionTimeout
+                - rootNamespace
+                - trustDomain
+                type: object
+              meshNetworks:
+                additionalProperties:
+                  properties:
+                    endpoints:
+                      items:
+                        properties:
+                          fromCidr:
+                            type: string
+                          fromRegistry:
+                            type: string
+                        required:
+                        - fromCidr
+                        - fromRegistry
+                        type: object
+                      type: array
+                    gateways:
+                      items:
+                        properties:
+                          address:
+                            type: string
+                          port:
+                            format: int32
+                            type: integer
+                          registryServiceName:
+                            type: string
+                        required:
+                        - address
+                        - port
+                        - registryServiceName
+                        type: object
+                      type: array
+                  required:
+                  - endpoints
+                  - gateways
+                  type: object
+                type: object
               multiCluster:
+                nullable: true
                 properties:
                   clusterName:
                     type: string
@@ -964,6 +1150,7 @@ spec:
                   and common container settings. Some fields are also present in container.securityContext.  Field
                   values of container.securityContext take precedence over field values
                   of PodSecurityContext.
+                nullable: true
                 properties:
                   fsGroup:
                     description: "A special supplemental group that applies to all
@@ -1318,6 +1505,7 @@ spec:
                 type: object
               replicas:
                 format: int32
+                nullable: true
                 type: integer
               resources:
                 description: ResourceRequirements describes the compute resource requirements.
@@ -1546,6 +1734,7 @@ spec:
                   type: string
                 type: object
               service:
+                nullable: true
                 properties:
                   annotations:
                     additionalProperties:
@@ -1639,13 +1828,13 @@ spec:
                   name:
                     type: string
                 required:
-                - annotations
                 - enable
-                - name
                 type: object
               skywalking:
                 properties:
                   address:
+                    type: string
+                  customBootStrap:
                     type: string
                   enable:
                     type: boolean
@@ -1654,6 +1843,7 @@ spec:
                     type: integer
                 required:
                 - address
+                - customBootStrap
                 - enable
                 - port
                 type: object
@@ -1696,38 +1886,28 @@ spec:
                       type: string
                   type: object
                 type: array
+              volumeWasmPlugins:
+                items:
+                  type: string
+                type: array
             required:
-            - affinity
-            - annotations
             - autoScaling
             - enableHigressIstio
             - enableIstioAPI
             - enableStatus
-            - env
+            - hostNetwork
             - image
-            - imagePullSecrets
-            - istiod
+            - jwtPolicy
             - local
-            - logAsJson
-            - logLevel
-            - multiCluster
+            - meshConfig
+            - meshNetworks
             - name
             - netWorkGateway
-            - nodeSelector
-            - podSecurityContext
-            - ports
-            - rbac
-            - readinessProbe
-            - resources
-            - revision
             - rollingMaxSurge
             - rollingMaxUnavailable
-            - securityContext
             - selectorLabels
-            - service
-            - serviceAccount
             - skywalking
-            - toleration
+            - volumeWasmPlugins
             type: object
           status:
             description: HigressGatewayStatus defines the observed state of HigressGateway

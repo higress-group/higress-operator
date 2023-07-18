@@ -60,18 +60,22 @@ type HigressControllerList struct {
 type ControllerSpec struct {
 	ContainerCommonFields `json:",inline"`
 
-	GatewayName    string `json:"gatewayName"`
-	IngressClass   string `json:"ingressClass"`
+	GatewayName  string `json:"gatewayName"`
+	IngressClass string `json:"ingressClass"`
+	// +kubebuilder:validation:Optional
 	WatchNamespace string `json:"watchNamespace"`
 }
 
 type PilotSpec struct {
 	ContainerCommonFields `json:",inline"`
 
-	TraceSampling                     string   `json:"traceSampling"`
-	JwksResolveExtraRootCA            string   `json:"jwksResolveExtraRootCA"`
+	// +kubebuilder:validation:Optional
+	TraceSampling string `json:"traceSampling"`
+	// +kubebuilder:validation:Optional
+	JwksResolveExtraRootCA string `json:"jwksResolveExtraRootCA"`
+	// +kubebuilder:validation:Optional
 	Plugins                           []string `json:"plugins"`
-	KeepaliveMaxServerConnectionAge   int      `json:"keepaliveMaxServerConnectionAge"`
+	KeepaliveMaxServerConnectionAge   string   `json:"keepaliveMaxServerConnectionAge"`
 	ClusterDomain                     string   `json:"clusterDomain"`
 	OneNamespace                      bool     `json:"oneNamespace"`
 	JwtPolicy                         string   `json:"jwtPolicy"`

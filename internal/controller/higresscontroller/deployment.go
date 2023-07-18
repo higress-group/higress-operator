@@ -15,7 +15,7 @@ import (
 )
 
 func initDeployment(deploy *appsv1.Deployment, instance *operatorv1alpha1.HigressController) *appsv1.Deployment {
-	deploy = &appsv1.Deployment{
+	*deploy = appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
 			Namespace: instance.Namespace,
@@ -177,15 +177,18 @@ func genPilotEnv(instance *operatorv1alpha1.HigressController) []apiv1.EnvVar {
 	}
 	envs = append(envs, apiv1.EnvVar{Name: "ISTIOD_ADDR", Value: istioAddr})
 
-	envs = append(envs, apiv1.EnvVar{
-		Name:  "PILOT_ENABLE_ANALYSIS",
-		Value: strconv.FormatBool(instance.Spec.Istiod.EnableAnalysis),
-	})
-
-	clusterId := instance.Spec.MultiCluster.ClusterName
-	if clusterId == "" {
-		clusterId = "Kubernetes"
+	if istiod := instance.Spec.Istiod; istiod != nil {
+		envs = append(envs, apiv1.EnvVar{
+			Name:  "PILOT_ENABLE_ANALYSIS",
+			Value: strconv.FormatBool(instance.Spec.Istiod.EnableAnalysis),
+		})
 	}
+
+	clusterId := "Kubernetes"
+	if multiCluster := instance.Spec.MultiCluster; multiCluster != nil && multiCluster.Enable {
+		clusterId = instance.Spec.MultiCluster.ClusterName
+	}
+
 	envs = append(envs, apiv1.EnvVar{Name: "CLUSTER_ID", Value: clusterId})
 
 	envs = append(envs, apiv1.EnvVar{Name: "HIGRESS_ENABLE_ISTIO_API", Value: strconv.FormatBool(instance.Spec.EnableIstioAPI)})
@@ -250,9 +253,10 @@ func genPilotArgs(instance *operatorv1alpha1.HigressController) []string {
 	pilot := instance.Spec.Pilot
 
 	var args []string
+	args = append(args, "discovery")
 	args = append(args, fmt.Sprintf("--monitoringAddr=:15014"))
 	args = append(args, fmt.Sprintf("--domain=%v", pilot.ClusterDomain))
-	args = append(args, fmt.Sprintf("--keepaliveMaxServerConnetionAge=%v", pilot.KeepaliveMaxServerConnectionAge))
+	args = append(args, fmt.Sprintf("--keepaliveMaxServerConnectionAge=%v", pilot.KeepaliveMaxServerConnectionAge))
 
 	if pilot.LogLevel != "" {
 		args = append(args, fmt.Sprintf("--log_output_level=%v", pilot.LogLevel))
@@ -273,6 +277,7 @@ func genPilotArgs(instance *operatorv1alpha1.HigressController) []string {
 func genControllerArgs(instance *operatorv1alpha1.HigressController) []string {
 	var args []string
 
+	args = append(args, "serve")
 	args = append(args, fmt.Sprintf("--gatewaySelectorKey=higress"))
 	args = append(args, fmt.Sprintf("--gatewaySelectorValue=%v-%v", instance.Namespace, instance.Spec.Controller.GatewayName))
 	args = append(args, fmt.Sprintf("--ingressClass=%v", instance.Spec.Controller.IngressClass))

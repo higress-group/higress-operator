@@ -50,6 +50,8 @@ type HigressGatewayReconciler struct {
 //+kubebuilder:rbac:groups=operator.higress.io,resources=higressgateways/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=operator.higress.io,resources=higressgateways/finalizers,verbs=update
 
+//+kubebuilder:rbac:groups="",resources=pods;services;services/finalizers;endpoints;persistentvolumeclaims;events;configmaps;secrets;serviceaccounts;namespaces,verbs=create;update;get;list;watch;patch;delete
+
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
@@ -65,8 +67,8 @@ func (r *HigressGatewayReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	instance := &operatorv1alpha1.HigressGateway{}
 	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
 		if errors.IsNotFound(err) {
-			logger.Info("HigressGateway(%v) resource not found")
-			return ctrl.Result{}, err
+			logger.Info(fmt.Sprintf("HigressGateway(%v) resource not found", req.NamespacedName))
+			return ctrl.Result{}, nil
 		}
 
 		logger.Error(err, "Failed to get resource HigressGateway(%v)", req.NamespacedName)
@@ -213,7 +215,7 @@ func (r *HigressGatewayReconciler) createDeployment(ctx context.Context, instanc
 		return err
 	}
 
-	return CreateOrUpdate(ctx, r.Client, deploy, muteDeployment(deploy, instance), logger)
+	return CreateOrUpdate(ctx, r.Client, "Deployment", deploy, muteDeployment(deploy, instance), logger)
 }
 
 func (r *HigressGatewayReconciler) createService(ctx context.Context, instance *operatorv1alpha1.HigressGateway, logger logr.Logger) error {
@@ -222,7 +224,7 @@ func (r *HigressGatewayReconciler) createService(ctx context.Context, instance *
 		return err
 	}
 
-	return CreateOrUpdate(ctx, r.Client, svc, muteService(svc, instance), logger)
+	return CreateOrUpdate(ctx, r.Client, "Service", svc, muteService(svc, instance), logger)
 }
 
 func (r *HigressGatewayReconciler) finalizeHigressGateway(instance *operatorv1alpha1.HigressGateway, logger logr.Logger) error {

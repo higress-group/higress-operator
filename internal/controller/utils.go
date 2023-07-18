@@ -10,15 +10,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func CreateOrUpdate(ctx context.Context, cli client.Client, object client.Object, f controllerutil.MutateFn, logger logr.Logger) error {
-	kind, key := object.GetObjectKind().GroupVersionKind().Kind, client.ObjectKeyFromObject(object)
+func CreateOrUpdate(ctx context.Context, cli client.Client, kind string, object client.Object, f controllerutil.MutateFn, logger logr.Logger) error {
+	key := client.ObjectKeyFromObject(object)
 	status, err := controllerutil.CreateOrUpdate(ctx, cli, object, f)
 	if err != nil {
 		logger.Error(err, fmt.Sprintf("Failed to createOrUpdate object {%s:%s}", kind, key))
 		return err
 	}
 
-	logger.Info(fmt.Sprintf("createOrUpdate object {%s:%s} %s", kind, key, status))
+	logger.Info(fmt.Sprintf("createOrUpdate object {%s:%s} : %s", kind, key, status))
 	return nil
 }
 

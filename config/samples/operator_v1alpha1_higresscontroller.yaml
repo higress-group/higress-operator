@@ -9,4 +9,40 @@ metadata:
     app.kubernetes.io/created-by: higressoperator
   name: higresscontroller-sample
 spec:
-  # TODO(user): Add fields here
+  selectorLabels:
+    app: higress-controller
+  rbac:
+    enable: true
+  serviceAccount:
+    enable: true
+  enableStatus: true
+  enableHigressIstio: false
+  enableIstioAPI: false
+  local: false
+  jwtPolicy: "third-party-jwt"
+  controller:
+    name: "controller"
+    image:
+      repository: "higress-registry.cn-hangzhou.cr.aliyuncs.com/higress/higress"
+      tag: "1.1.0"
+      imagePullPolicy: "IfNotPresent"
+    gatewayName: "higress-gateway"
+    ingressClass: "higress"
+  pilot:
+    name: "pilot"
+    image:
+      repository: "higress-registry.cn-hangzhou.cr.aliyuncs.com/higress/pilot"
+      tag: "1.1.0"
+      imagePullPolicy: "IfNotPresent"
+    env:
+      PILOT_SCOPE_GATEWAY_TO_NAMESPACE: "false"
+      PILOT_ENABLE_METADATA_EXCHANGE: "false"
+      PILOT_ENABLE_CROSS_CLUSTER_WORKLOAD_ENTRY: "false"
+      VALIDATION_ENABLED: "false"
+    traceSampling: "1.0"
+    keepaliveMaxServerConnectionAge: 30m
+    clusterDomain: "cluster.local"
+    oneNamespace: false
+    jwtPolicy: "third-party-jwt"
+    enableProtocolSniffingForOutbound: true
+    enableProtocolSniffingForInbound: true

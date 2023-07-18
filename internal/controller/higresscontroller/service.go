@@ -9,7 +9,7 @@ import (
 )
 
 func initService(svc *apiv1.Service, instance *operatorv1alpha1.HigressController) *apiv1.Service {
-	svc = &apiv1.Service{
+	*svc = apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
 			Namespace: instance.Namespace,

@@ -92,6 +92,7 @@ func main() {
 	if err = (&higresscontroller.HigressControllerReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Config: mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "HigressController")
 		os.Exit(1)

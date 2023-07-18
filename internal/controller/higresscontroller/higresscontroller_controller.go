@@ -19,11 +19,15 @@ package higresscontroller
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/equality"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apixv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -44,6 +48,7 @@ const (
 type HigressControllerReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Config *rest.Config
 }
 
 //+kubebuilder:rbac:groups=operator.higress.io,resources=higresscontrollers,verbs=get;list;watch;create;update;patch;delete
@@ -51,6 +56,7 @@ type HigressControllerReconciler struct {
 //+kubebuilder:rbac:groups=operator.higress.io,resources=higresscontrollers/finalizers,verbs=update
 
 //+kubebuilder:rbac:groups=apps,resources=deployments;replicasets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=pods;services;services/finalizers;endpoints;persistentvolumeclaims;events;configmaps;secrets;serviceaccounts;namespaces,verbs=create;update;get;list;watch;patch;delete
 
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=list;watch;get
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=ingressclasses,verbs=get;create;delete
@@ -73,11 +79,11 @@ func (r *HigressControllerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	instance := &operatorv1alpha1.HigressController{}
 	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
 		if errors.IsNotFound(err) {
-			logger.Info("HigressController(%v) resource not found. Ignoring since object must be deleted", req.NamespacedName)
+			logger.Info(fmt.Sprintf("HigressController(%v) resource not found. Ignoring since object must be deleted", req.NamespacedName))
 			return ctrl.Result{}, nil
 		}
 
-		logger.Error(err, "Failed to get resource HigressController(%v)", req.NamespacedName)
+		logger.Error(err, fmt.Sprintf("Failed to get resource HigressController(%v)", req.NamespacedName))
 		return ctrl.Result{}, err
 	}
 
@@ -113,6 +119,10 @@ func (r *HigressControllerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		if err = r.Update(ctx, instance); err != nil {
 			return ctrl.Result{}, err
 		}
+	}
+
+	if r.createCRDs(ctx, logger); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	if err = r.createServiceAccount(ctx, instance, logger); err != nil {
@@ -157,11 +167,11 @@ func (r *HigressControllerReconciler) createServiceAccount(ctx context.Context, 
 	}
 
 	var (
-		sa  *apiv1.ServiceAccount
+		sa  = &apiv1.ServiceAccount{}
 		err error
 	)
 
-	initServiceAccount(sa, instance)
+	sa = initServiceAccount(sa, instance)
 	if err = ctrl.SetControllerReference(instance, sa, r.Scheme); err != nil {
 		return err
 	}
@@ -185,30 +195,17 @@ func (r *HigressControllerReconciler) createRBAC(ctx context.Context, instance *
 	}
 
 	var (
-		role *rbacv1.Role
-		rb   *rbacv1.RoleBinding
-		cr   *rbacv1.ClusterRole
-		crb  *rbacv1.ClusterRoleBinding
+		cr  = &rbacv1.ClusterRole{}
+		crb = &rbacv1.ClusterRoleBinding{}
 	)
 
-	// create or update Role
-	initRole(role, instance)
-	if err := CreateOrUpdate(ctx, r.Client, role, muteRole(role, instance), log); err != nil {
-		return err
-	}
-
-	initRoleBinding(rb, instance)
-	if err := CreateOrUpdate(ctx, r.Client, rb, muteRoleBinding(rb, instance), log); err != nil {
-		return err
-	}
-
 	initClusterRole(cr, instance)
-	if err := CreateOrUpdate(ctx, r.Client, cr, muteClusterRole(cr, instance), log); err != nil {
+	if err := CreateOrUpdate(ctx, r.Client, "ClusterRole", cr, muteClusterRole(cr, instance), log); err != nil {
 		return err
 	}
 
 	initClusterRoleBinding(crb, instance)
-	if err := CreateOrUpdate(ctx, r.Client, crb, muteClusterRoleBinding(crb, instance), log); err != nil {
+	if err := CreateOrUpdate(ctx, r.Client, "ClusterRoleBinding", crb, muteClusterRoleBinding(crb, instance), log); err != nil {
 		return err
 	}
 
@@ -221,7 +218,8 @@ func (r *HigressControllerReconciler) createDeployment(ctx context.Context, inst
 		return err
 	}
 
-	return CreateOrUpdate(ctx, r.Client, deploy, muteDeployment(deploy, instance), logger)
+	logger.Info("创建deployment成功, ")
+	return CreateOrUpdate(ctx, r.Client, "Deployment", deploy, muteDeployment(deploy, instance), logger)
 }
 
 func (r *HigressControllerReconciler) createService(ctx context.Context, instance *operatorv1alpha1.HigressController, logger logr.Logger) error {
@@ -230,13 +228,16 @@ func (r *HigressControllerReconciler) createService(ctx context.Context, instanc
 		return err
 	}
 
-	return CreateOrUpdate(ctx, r.Client, svc, muteService(svc, instance), logger)
+	return CreateOrUpdate(ctx, r.Client, "Service", svc, muteService(svc, instance), logger)
 }
 
 func (r *HigressControllerReconciler) finalizeHigressController(instance *operatorv1alpha1.HigressController, logger logr.Logger) error {
+	if !instance.Spec.RBAC.Enable || !instance.Spec.ServiceAccount.Enable {
+		return nil
+	}
+
 	var (
 		ctx = context.TODO()
-		rb  = &rbacv1.RoleBinding{}
 		crb = &rbacv1.ClusterRoleBinding{}
 	)
 
@@ -253,24 +254,37 @@ func (r *HigressControllerReconciler) finalizeHigressController(instance *operat
 		}
 	}
 	crb.Subjects = subjects
-	if err := r.Update(ctx, crb); err != nil {
+	return r.Update(ctx, crb)
+}
+
+func (r *HigressControllerReconciler) createCRDs(ctx context.Context, logger logr.Logger) error {
+	apixClient, err := apixv1client.NewForConfig(r.Config)
+	if err != nil {
 		return err
 	}
 
-	nn = types.NamespacedName{Namespace: instance.Namespace, Name: name}
-	if err := r.Get(ctx, nn, rb); err != nil {
+	crds, err := getCRDs()
+	if err != nil {
 		return err
 	}
 
-	subjects = []rbacv1.Subject{}
-	for _, subject := range crb.Subjects {
-		if subject.Name != name || subject.Namespace != instance.Namespace {
-			subjects = append(subjects, subject)
+	cli := apixClient.CustomResourceDefinitions()
+	for _, crd := range crds {
+		logger.Info(fmt.Sprintf("createOrUpdate crd %v", crd))
+		if existing, err := cli.Get(ctx, crd.Name, metav1.GetOptions{TypeMeta: crd.TypeMeta}); err != nil {
+			if !errors.IsNotFound(err) {
+				logger.Error(err, fmt.Sprintf("failed to get CRD %v", crd.Name))
+				return err
+			}
+			if _, err = cli.Create(ctx, crd, metav1.CreateOptions{TypeMeta: crd.TypeMeta}); err != nil {
+				return err
+			}
+		} else if !equality.Semantic.DeepEqual(existing, crd) {
+			logger.Info(fmt.Sprintf("previous CRD %v found, and it's different from origin", crd.Name))
+			if _, err = cli.Update(ctx, crd, metav1.UpdateOptions{TypeMeta: crd.TypeMeta}); err != nil {
+				return err
+			}
 		}
-	}
-	rb.Subjects = subjects
-	if err := r.Update(ctx, crb); err != nil {
-		return err
 	}
 	return nil
 }

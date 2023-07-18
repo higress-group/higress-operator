@@ -37,6 +37,7 @@ spec:
             properties:
               affinity:
                 description: Affinity is a group of affinity scheduling rules.
+                nullable: true
                 properties:
                   nodeAffinity:
                     description: Describes node affinity scheduling rules for the
@@ -864,6 +865,7 @@ spec:
                     type: object
                 type: object
               autoScaling:
+                nullable: true
                 properties:
                   enable:
                     type: boolean
@@ -1343,20 +1345,10 @@ spec:
                   watchNamespace:
                     type: string
                 required:
-                - annotations
-                - env
                 - gatewayName
                 - image
-                - imagePullSecrets
                 - ingressClass
-                - logAsJson
-                - logLevel
                 - name
-                - ports
-                - readinessProbe
-                - resources
-                - securityContext
-                - watchNamespace
                 type: object
               enableHigressIstio:
                 type: boolean
@@ -1364,16 +1356,25 @@ spec:
                 type: boolean
               enableStatus:
                 type: boolean
+              istioNamespace:
+                type: string
               istiod:
+                nullable: true
                 properties:
                   enableAnalysis:
                     type: boolean
                 required:
                 - enableAnalysis
                 type: object
+              jwtPolicy:
+                enum:
+                - third-party-jwt
+                - first-party-jwt
+                type: string
               local:
                 type: boolean
               multiCluster:
+                nullable: true
                 properties:
                   clusterName:
                     type: string
@@ -1440,7 +1441,7 @@ spec:
                   jwtPolicy:
                     type: string
                   keepaliveMaxServerConnectionAge:
-                    type: integer
+                    type: string
                   logAsJson:
                     type: boolean
                   logLevel:
@@ -1862,32 +1863,21 @@ spec:
                   traceSampling:
                     type: string
                 required:
-                - annotations
                 - clusterDomain
                 - enableProtocolSniffingForInbound
                 - enableProtocolSniffingForOutbound
-                - env
                 - image
-                - imagePullSecrets
-                - jwksResolveExtraRootCA
                 - jwtPolicy
                 - keepaliveMaxServerConnectionAge
-                - logAsJson
-                - logLevel
                 - name
                 - oneNamespace
-                - plugins
-                - ports
-                - readinessProbe
-                - resources
-                - securityContext
-                - traceSampling
                 type: object
               podSecurityContext:
                 description: PodSecurityContext holds pod-level security attributes
                   and common container settings. Some fields are also present in container.securityContext.  Field
                   values of container.securityContext take precedence over field values
                   of PodSecurityContext.
+                nullable: true
                 properties:
                   fsGroup:
                     description: "A special supplemental group that applies to all
@@ -2063,6 +2053,7 @@ spec:
                 type: object
               replicas:
                 format: int32
+                nullable: true
                 type: integer
               revision:
                 type: string
@@ -2071,6 +2062,7 @@ spec:
                   type: string
                 type: object
               service:
+                nullable: true
                 properties:
                   annotations:
                     additionalProperties:
@@ -2164,9 +2156,7 @@ spec:
                   name:
                     type: string
                 required:
-                - annotations
                 - enable
-                - name
                 type: object
               toleration:
                 items:
@@ -2208,24 +2198,14 @@ spec:
                   type: object
                 type: array
             required:
-            - affinity
-            - autoScaling
             - controller
             - enableHigressIstio
             - enableIstioAPI
             - enableStatus
-            - istiod
+            - jwtPolicy
             - local
-            - multiCluster
-            - nodeSelector
             - pilot
-            - podSecurityContext
-            - rbac
-            - revision
             - selectorLabels
-            - service
-            - serviceAccount
-            - toleration
             type: object
           status:
             description: HigressControllerStatus defines the observed state of HigressController

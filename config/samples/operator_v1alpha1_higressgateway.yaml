@@ -9,4 +9,77 @@ metadata:
     app.kubernetes.io/created-by: higressoperator
   name: higressgateway-sample
 spec:
-  # TODO(user): Add fields here
+  spec:
+    crdcommonfields:
+      replicas: null
+      selectorlabels: { }
+      nodeselector: { }
+      affinity: null
+      toleration: [ ]
+      service: null
+      rbac:
+        enable: false
+      serviceaccount:
+        enable: false
+        name: ""
+        annotations: { }
+      autoscaling: null
+      podsecuritycontext: null
+      enablestatus: false
+      enablehigressistio: false
+      enableistioapi: false
+      istionamespace: ""
+      revision: ""
+      istiod: null
+      multicluster: null
+      local: false
+      jwtpolicy: ""
+    containercommonfields:
+      name: ""
+      annotations: { }
+      image:
+        repository: ""
+        tag: ""
+        imagepullpolicy: ""
+      imagepullsecrets: [ ]
+      env: { }
+      readinessprobe: null
+      ports: [ ]
+      resources: null
+      securitycontext: null
+      loglevel: ""
+      logasjson: false
+    networkgateway: ""
+    skywalking: null
+    autoscaling: null
+    rollingmaxsurge:
+      type: 0
+      intval: 0
+      strval: ""
+    rollingmaxunavailable:
+      type: 0
+      intval: 0
+      strval: ""
+    meshconfig:
+      trustdomain: ""
+      accesslogencoding: ""
+      accesslogfile: ""
+      ingressscontrollermode: ""
+      accesslogformat: ""
+      dnsrefreshrate: null
+      enableautomtls: false
+      enableprometheusmerge: false
+      protocoldetectiontimeout: null
+      rootnamespace: ""
+      configsources: [ ]
+      defaultconfig:
+        disablealpnh2: false
+        meshid: ""
+        tracing: null
+        discoveryaddress: ""
+        proxystatsmatcher: null
+    meshnetworks: { }
+    volumewasmplugins: [ ]
+    hostnetwork: false
+    status:
+      deployed: false

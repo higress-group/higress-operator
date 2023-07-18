@@ -5,42 +5,73 @@ import apiv1 "k8s.io/api/core/v1"
 // +k8s:deepcopy-gen=true
 
 type CRDCommonFields struct {
-	Replicas           *int32                    `json:"replicas,omitempty"`
-	SelectorLabels     map[string]string         `json:"selectorLabels"`
-	NodeSelector       map[string]string         `json:"nodeSelector"`
-	Affinity           *apiv1.Affinity           `json:"affinity"`
-	Toleration         []apiv1.Toleration        `json:"toleration"`
-	Service            *Service                  `json:"service"`
-	RBAC               RBAC                      `json:"rbac"`
-	ServiceAccount     ServiceAccount            `json:"serviceAccount"`
-	AutoScaling        *AutoScaling              `json:"autoScaling"`
+	// +kubebuilder:validation:Optional
+	// +nullable
+	Replicas *int32 `json:"replicas,omitempty"`
+	// +kubebuilder:validation:Required
+	SelectorLabels map[string]string `json:"selectorLabels"`
+	// +kubebuilder:validation:Optional
+	NodeSelector map[string]string `json:"nodeSelector"`
+	// +kubebuilder:validation:Optional
+	// +nullable
+	Affinity *apiv1.Affinity `json:"affinity"`
+	// +kubebuilder:validation:Optional
+	Toleration []apiv1.Toleration `json:"toleration"`
+	// +kubebuilder:validation:Optional
+	// +nullable
+	Service *Service `json:"service"`
+	// +kubebuilder:validation:Optional
+	RBAC RBAC `json:"rbac"`
+	// +kubebuilder:validation:Optional
+	ServiceAccount ServiceAccount `json:"serviceAccount"`
+	// +kubebuilder:validation:Optional
+	// +nullable
+	AutoScaling *AutoScaling `json:"autoScaling"`
+	// +kubebuilder:validation:Optional
+	// +nullable
 	PodSecurityContext *apiv1.PodSecurityContext `json:"podSecurityContext"`
 
-	EnableStatus       bool         `json:"enableStatus"`
-	EnableHigressIstio bool         `json:"enableHigressIstio"`
-	EnableIstioAPI     bool         `json:"enableIstioAPI"`
-	IstioNamespace     string       `json:"istioNamespace"`
-	Revision           string       `json:"revision"`
-	Istiod             Istio        `json:"istiod"`
-	MultiCluster       MultiCluster `json:"multiCluster"`
-	Local              bool         `json:"local"`
-	JwtPolicy          string       `json:"jwtPolicy"`
+	EnableStatus       bool `json:"enableStatus"`
+	EnableHigressIstio bool `json:"enableHigressIstio"`
+	EnableIstioAPI     bool `json:"enableIstioAPI"`
+	// +kubebuilder:validation:Optional
+	IstioNamespace string `json:"istioNamespace"`
+	// +kubebuilder:validation:Optional
+	Revision string `json:"revision"`
+	// +kubebuilder:validation:Optional
+	// +nullable
+	Istiod *Istio `json:"istiod"`
+	// +kubebuilder:validation:Optional
+	// +nullable
+	MultiCluster *MultiCluster `json:"multiCluster"`
+	Local        bool          `json:"local"`
+	// +kubebuilder:validation:Enum=third-party-jwt;first-party-jwt
+	JwtPolicy string `json:"jwtPolicy"`
 }
 
 // +k8s:deepcopy-gen=true
 
 type ContainerCommonFields struct {
-	Name             string                       `json:"name"`
-	Annotations      map[string]string            `json:"annotations"`
-	Image            Image                        `json:"image"`
+	Name string `json:"name"`
+	// +kubebuilder:validation:Optional
+	Annotations map[string]string `json:"annotations"`
+	Image       Image             `json:"image"`
+	// +kubebuilder:validation:Optional
 	ImagePullSecrets []apiv1.LocalObjectReference `json:"imagePullSecrets"`
-	Env              map[string]string            `json:"env"`
-	ReadinessProbe   *apiv1.Probe                 `json:"readinessProbe"`
-	Ports            []apiv1.ContainerPort        `json:"ports"`
-	Resources        *apiv1.ResourceRequirements  `json:"resources"`
-	SecurityContext  *apiv1.SecurityContext       `json:"securityContext"`
-	LogLevel         string                       `json:"logLevel"`
-	LogAsJson        bool                         `json:"logAsJson"`
+	// +kubebuilder:validation:Optional
+	Env map[string]string `json:"env"`
+	// +kubebuilder:validation:Optional
+	ReadinessProbe *apiv1.Probe `json:"readinessProbe"`
+	// +kubebuilder:validation:Optional
+	Ports []apiv1.ContainerPort `json:"ports"`
+	// +kubebuilder:validation:Optional
+	Resources *apiv1.ResourceRequirements `json:"resources"`
+	// +kubebuilder:validation:Optional
+	SecurityContext *apiv1.SecurityContext `json:"securityContext"`
+	// +kubebuilder:validation:Optional
+	LogLevel string `json:"logLevel"`
+	// +kubebuilder:validation:Optional
+	LogAsJson bool `json:"logAsJson"`
 }
 
 // +k8s:deepcopy-gen=true
@@ -55,8 +86,10 @@ type Image struct {
 // +k8s:deepcopy-gen=true
 
 type ServiceAccount struct {
-	Enable      bool              `json:"enable"`
-	Name        string            `json:"name"`
+	Enable bool `json:"enable"`
+	// +kubebuilder:validation:Optional
+	Name string `json:"name"`
+	// +kubebuilder:validation:Optional
 	Annotations map[string]string `json:"annotations"`
 }
 

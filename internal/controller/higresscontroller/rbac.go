@@ -8,6 +8,10 @@ import (
 	operatorv1alpha1 "github.com/alibaba/higress/api/v1alpha1"
 )
 
+const (
+	clusterRole = "higress-controller"
+)
+
 func defaultRules() []rbacv1.PolicyRule {
 	rules := []rbacv1.PolicyRule{
 		{
@@ -16,7 +20,7 @@ func defaultRules() []rbacv1.PolicyRule {
 			Resources: []string{"services", "endpoints"},
 		},
 		{
-			Verbs:     []string{"get", "list", "watch"},
+			Verbs:     []string{"get", "list", "watch", "create", "update"},
 			APIGroups: []string{""},
 			Resources: []string{"secrets"},
 		},
@@ -28,7 +32,7 @@ func defaultRules() []rbacv1.PolicyRule {
 		{
 			Verbs:     []string{"list", "watch"},
 			APIGroups: []string{""},
-			Resources: []string{"pods"},
+			Resources: []string{"pods", "nodes", "namespaces"},
 		},
 		{
 			Verbs:     []string{"create", "patch"},
@@ -46,9 +50,24 @@ func defaultRules() []rbacv1.PolicyRule {
 			Resources: []string{"ingresses/status"},
 		},
 		{
-			Verbs:     []string{"get", "create"},
+			Verbs:     []string{"get", "create", "watch", "list", "update", "patch"},
 			APIGroups: []string{"networking.k8s.io"},
 			Resources: []string{"ingressclasses"},
+		},
+		{
+			Verbs:     []string{"get", "create", "watch", "list", "update", "patch"},
+			APIGroups: []string{"extensions.higress.io"},
+			Resources: []string{"wasmplugins"},
+		},
+		{
+			Verbs:     []string{"get", "create", "watch", "list", "update", "patch"},
+			APIGroups: []string{"networking.higress.io"},
+			Resources: []string{"http2rpcs", "mcpbridges"},
+		},
+		{
+			Verbs:     []string{"get", "watch", "list"},
+			APIGroups: []string{"apiextensions.k8s.io"},
+			Resources: []string{"customresourcedefinitions"},
 		},
 	}
 
@@ -56,9 +75,13 @@ func defaultRules() []rbacv1.PolicyRule {
 }
 
 func initClusterRole(cr *rbacv1.ClusterRole, instance *operatorv1alpha1.HigressController) *rbacv1.ClusterRole {
-	cr = &rbacv1.ClusterRole{
+	if cr == nil {
+		return nil
+	}
+
+	*cr = rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: getServiceAccount(instance),
+			Name: clusterRole,
 		},
 		Rules: defaultRules(),
 	}
@@ -67,20 +90,24 @@ func initClusterRole(cr *rbacv1.ClusterRole, instance *operatorv1alpha1.HigressC
 
 func muteClusterRole(cr *rbacv1.ClusterRole, instance *operatorv1alpha1.HigressController) controllerutil.MutateFn {
 	return func() error {
-		cr.Name = getServiceAccount(instance)
+		cr.Name = clusterRole
 		cr.Rules = defaultRules()
 		return nil
 	}
 }
 
 func initClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1alpha1.HigressController) *rbacv1.ClusterRoleBinding {
-	crb = &rbacv1.ClusterRoleBinding{
+	if crb == nil {
+		return nil
+	}
+
+	*crb = rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: getServiceAccount(instance),
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
-			Name:     getServiceAccount(instance),
+			Name:     clusterRole,
 			APIGroup: "rbac.authorization.k8s.io",
 		},
 		Subjects: []rbacv1.Subject{
@@ -97,7 +124,7 @@ func initClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1
 
 func muteClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1alpha1.HigressController) controllerutil.MutateFn {
 	return func() error {
-		initClusterRoleBinding(crb, instance)
+		crb = initClusterRoleBinding(crb, instance)
 		return nil
 	}
 }
@@ -105,7 +132,8 @@ func muteClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1
 func initRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressController) *rbacv1.RoleBinding {
 	rb = &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: getServiceAccount(instance),
+			Name:      getServiceAccount(instance),
+			Namespace: instance.Namespace,
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "Role",
