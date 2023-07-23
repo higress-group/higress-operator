@@ -9,13 +9,14 @@ import (
 )
 
 const (
+	role        = "higress-gateway"
 	clusterRole = "higress-gateway"
 )
 
 func defaultRules() []rbacv1.PolicyRule {
 	rules := []rbacv1.PolicyRule{
 		{
-			Verbs:     []string{"get", "list", "watch"},
+			Verbs:     []string{"get", "list", "watch", "update", "delete"},
 			APIGroups: []string{""},
 			Resources: []string{"secrets"},
 		},
@@ -36,7 +37,6 @@ func initClusterRole(cr *rbacv1.ClusterRole, _ *operatorv1alpha1.HigressGateway)
 
 func muteClusterRole(cr *rbacv1.ClusterRole, instance *operatorv1alpha1.HigressGateway) controllerutil.MutateFn {
 	return func() error {
-		cr.Name = getServiceAccount(instance)
 		cr.Rules = defaultRules()
 		return nil
 	}
@@ -74,7 +74,8 @@ func muteClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1
 func initRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressGateway) *rbacv1.RoleBinding {
 	*rb = rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: getServiceAccount(instance),
+			Name:      role,
+			Namespace: instance.Namespace,
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "Role",
@@ -99,21 +100,21 @@ func muteRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressG
 	}
 }
 
-func initRole(role *rbacv1.Role, instance *operatorv1alpha1.HigressGateway) *rbacv1.Role {
-	*role = rbacv1.Role{
+func initRole(r *rbacv1.Role, instance *operatorv1alpha1.HigressGateway) *rbacv1.Role {
+	*r = rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getServiceAccount(instance),
+			Name:      role,
 			Namespace: instance.Namespace,
 		},
 		Rules: defaultRules(),
 	}
 
-	return role
+	return r
 }
 
 func muteRole(role *rbacv1.Role, instance *operatorv1alpha1.HigressGateway) controllerutil.MutateFn {
 	return func() error {
-		initRole(role, instance)
+		role.Rules = defaultRules()
 		return nil
 	}
 }

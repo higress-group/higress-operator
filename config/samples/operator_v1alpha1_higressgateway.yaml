@@ -8,6 +8,7 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: higressoperator
   name: higressgateway-sample
+  namespace: higress-system
 spec:
   enableStatus: true
   local: true
@@ -31,6 +32,7 @@ spec:
     configSources:
     - address: "xds://127.0.0.1:15051"
     defaultConfig:
+      disableAlpnH2: true
       proxyStatsMatcher:
         inclusionRegexps:
           - ".*"

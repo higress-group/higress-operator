@@ -19,6 +19,7 @@ package higressgateway
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -148,6 +149,7 @@ func (r *HigressGatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&operatorv1alpha1.HigressGateway{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&apiv1.Service{}).
+		Owns(&apiv1.ConfigMap{}).
 		Owns(&apiv1.ServiceAccount{}).
 		Complete(r)
 }
@@ -171,35 +173,38 @@ func (r *HigressGatewayReconciler) createServiceAccount(ctx context.Context, ins
 }
 
 func (r *HigressGatewayReconciler) createRBAC(ctx context.Context, instance *operatorv1alpha1.HigressGateway, logger logr.Logger) error {
-	if instance.Spec.RBAC == nil {
-		instance.Spec.RBAC = &operatorv1alpha1.RBAC{Enable: true}
-	}
-	if instance.Spec.ServiceAccount == nil {
-		instance.Spec.ServiceAccount = &operatorv1alpha1.ServiceAccount{Enable: true}
-	}
 	if !instance.Spec.RBAC.Enable || !instance.Spec.ServiceAccount.Enable {
 		return nil
 	}
 
 	var (
-		cr     = &rbacv1.ClusterRole{}
-		crb    = &rbacv1.ClusterRoleBinding{}
-		exists bool
-		err    error
+		role = &rbacv1.Role{}
+		rb   = &rbacv1.RoleBinding{}
+		cr   = &rbacv1.ClusterRole{}
+		crb  = &rbacv1.ClusterRoleBinding{}
+		err  error
 	)
 	// reconcile clusterRole
 	cr = initClusterRole(cr, instance)
-	if exists, err = CreateIfNotExits(ctx, r.Client, cr); err != nil {
+	if err = CreateOrUpdate(ctx, r.Client, "clusterrole", cr, muteClusterRole(cr, instance), logger); err != nil {
 		return err
-	}
-	if !exists {
-		logger.Info(fmt.Sprintf("create clusterRole for HigressGateway(%v)", instance.Name))
 	}
 
 	// reconcile clusterRoleBinding
 	initClusterRoleBinding(crb, instance)
 	if err = CreateOrUpdate(ctx, r.Client, "clusterRoleBinding", crb,
 		muteClusterRoleBinding(crb, instance), logger); err != nil {
+		return err
+	}
+
+	initRole(role, instance)
+	if err = CreateOrUpdate(ctx, r.Client, "role", cr, muteRole(role, instance), logger); err != nil {
+		return err
+	}
+
+	initRoleBinding(rb, instance)
+	if err = CreateOrUpdate(ctx, r.Client, "roleBinding", rb,
+		muteRoleBinding(rb, instance), logger); err != nil {
 		return err
 	}
 
@@ -256,7 +261,7 @@ func (r *HigressGatewayReconciler) createConfigMap(ctx context.Context, instance
 		return err
 	}
 	if err = CreateOrUpdate(ctx, r.Client, "gatewayConfigMap", gatewayConfigMap,
-		muteConfigMap(gatewayConfigMap, instance, initGatewayConfigMap), logger); err != nil {
+		muteConfigMap(gatewayConfigMap, instance, updateGatewayConfigMapSpec), logger); err != nil {
 		return err
 	}
 
@@ -265,8 +270,13 @@ func (r *HigressGatewayReconciler) createConfigMap(ctx context.Context, instance
 		if err != nil {
 			return err
 		}
+
+		if err = ctrl.SetControllerReference(instance, skywalkingConfigMap, r.Scheme); err != nil {
+			return err
+		}
+
 		if err = CreateOrUpdate(ctx, r.Client, "skywalkingConfigMap", skywalkingConfigMap,
-			muteConfigMap(gatewayConfigMap, instance, initSkywalkingConfigMap), logger); err != nil {
+			muteConfigMap(skywalkingConfigMap, instance, updateSkywalkingConfigMap), logger); err != nil {
 			return err
 		}
 	}
@@ -275,9 +285,12 @@ func (r *HigressGatewayReconciler) createConfigMap(ctx context.Context, instance
 }
 
 func (r *HigressGatewayReconciler) setDefaultValues(instance *operatorv1alpha1.HigressGateway) {
+	if instance.Spec.RBAC == nil {
+		instance.Spec.RBAC = &operatorv1alpha1.RBAC{Enable: true}
+	}
 	// serviceAccount
 	if instance.Spec.ServiceAccount == nil {
-		instance.Spec.ServiceAccount = &operatorv1alpha1.ServiceAccount{Enable: true}
+		instance.Spec.ServiceAccount = &operatorv1alpha1.ServiceAccount{Enable: true, Name: "higress-gateway"}
 	}
 	// replicas
 	if instance.Spec.Replicas == nil {
@@ -287,7 +300,8 @@ func (r *HigressGatewayReconciler) setDefaultValues(instance *operatorv1alpha1.H
 	// selectorLabels
 	if len(instance.Spec.SelectorLabels) == 0 {
 		instance.Spec.SelectorLabels = map[string]string{
-			"app": "higress-gateway",
+			"app":     "higress-gateway",
+			"higress": "higress-system-higress-gateway",
 		}
 	}
 	// service

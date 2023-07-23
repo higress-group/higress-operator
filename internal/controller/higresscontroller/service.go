@@ -8,19 +8,26 @@ import (
 	operatorv1alpha1 "github.com/alibaba/higress/api/v1alpha1"
 )
 
+const (
+	HigressControllerServiceName = "higress-controller"
+)
+
 func initService(svc *apiv1.Service, instance *operatorv1alpha1.HigressController) *apiv1.Service {
 	*svc = apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name,
+			Name:      HigressControllerServiceName,
 			Namespace: instance.Namespace,
 			Labels:    instance.Labels,
 		},
-		Spec: apiv1.ServiceSpec{
-			Selector: instance.Spec.SelectorLabels,
-			Type:     apiv1.ServiceTypeClusterIP,
-		},
 	}
 
+	updateServiceSpec(svc, instance)
+	return svc
+}
+
+func updateServiceSpec(svc *apiv1.Service, instance *operatorv1alpha1.HigressController) {
+	svc.Spec.Selector = instance.Spec.SelectorLabels
+	svc.Spec.Type = apiv1.ServiceTypeClusterIP
 	if s := instance.Spec.Service; s != nil {
 		if s.Type != "" {
 			svc.Spec.Type = apiv1.ServiceType(s.Type)
@@ -53,8 +60,6 @@ func initService(svc *apiv1.Service, instance *operatorv1alpha1.HigressControlle
 		}
 		svc.Spec.Ports = append(svc.Spec.Ports, ports...)
 	}
-
-	return svc
 }
 
 func muteService(svc *apiv1.Service, instance *operatorv1alpha1.HigressController) controllerutil.MutateFn {

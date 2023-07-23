@@ -11,6 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/alibaba/higress/api/v1alpha1"
+	"github.com/alibaba/higress/internal/controller"
 )
 
 const (
@@ -25,43 +26,50 @@ func initDeployment(deploy *appsv1.Deployment, instance *v1alpha1.HigressGateway
 			Labels:      instance.Labels,
 			Annotations: instance.Annotations,
 		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: instance.Spec.Replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: instance.Spec.SelectorLabels,
+	}
+
+	updateDeploymentSpec(deploy, instance)
+
+	return deploy
+}
+
+func updateDeploymentSpec(deploy *appsv1.Deployment, instance *v1alpha1.HigressGateway) *appsv1.Deployment {
+	deploy.Spec = appsv1.DeploymentSpec{
+		Replicas: instance.Spec.Replicas,
+		Selector: &metav1.LabelSelector{
+			MatchLabels: instance.Spec.SelectorLabels,
+		},
+		Strategy: appsv1.DeploymentStrategy{
+			RollingUpdate: &appsv1.RollingUpdateDeployment{
+				MaxUnavailable: &instance.Spec.RollingMaxUnavailable,
+				MaxSurge:       &instance.Spec.RollingMaxSurge,
 			},
-			Strategy: appsv1.DeploymentStrategy{
-				RollingUpdate: &appsv1.RollingUpdateDeployment{
-					MaxUnavailable: &instance.Spec.RollingMaxUnavailable,
-					MaxSurge:       &instance.Spec.RollingMaxSurge,
-				},
+		},
+		Template: apiv1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      instance.Name,
+				Namespace: instance.Namespace,
+				Labels:    instance.Spec.SelectorLabels,
 			},
-			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      instance.Name,
-					Namespace: instance.Namespace,
-					Labels:    instance.Spec.SelectorLabels,
-				},
-				Spec: apiv1.PodSpec{
-					ImagePullSecrets: instance.Spec.ImagePullSecrets,
-					SecurityContext:  genSecurityContextForPod(instance),
-					NodeSelector:     instance.Spec.NodeSelector,
-					Affinity:         instance.Spec.Affinity,
-					Tolerations:      instance.Spec.Toleration,
-					Containers: []apiv1.Container{
-						{
-							Name:            instanceName,
-							Image:           genImage(instance),
-							Args:            genArgs(instance),
-							SecurityContext: genSecurityContextForContainer(instance),
-							Env:             genEnv(instance),
-							Ports:           genPorts(instance),
-							ReadinessProbe:  genProbe(instance),
-							VolumeMounts:    genVolumeMounts(instance),
-						},
+			Spec: apiv1.PodSpec{
+				ImagePullSecrets: instance.Spec.ImagePullSecrets,
+				SecurityContext:  genSecurityContextForPod(instance),
+				NodeSelector:     instance.Spec.NodeSelector,
+				Affinity:         instance.Spec.Affinity,
+				Tolerations:      instance.Spec.Toleration,
+				Containers: []apiv1.Container{
+					{
+						Name:            instanceName,
+						Image:           genImage(instance),
+						Args:            genArgs(instance),
+						SecurityContext: genSecurityContextForContainer(instance),
+						Env:             genEnv(instance),
+						Ports:           genPorts(instance),
+						ReadinessProbe:  genProbe(instance),
+						VolumeMounts:    genVolumeMounts(instance),
 					},
-					Volumes: genVolumes(instance),
 				},
+				Volumes: genVolumes(instance),
 			},
 		},
 	}
@@ -87,7 +95,7 @@ func initDeployment(deploy *appsv1.Deployment, instance *v1alpha1.HigressGateway
 
 func muteDeployment(deploy *appsv1.Deployment, instance *v1alpha1.HigressGateway) controllerutil.MutateFn {
 	return func() error {
-		initDeployment(deploy, instance)
+		updateDeploymentSpec(deploy, instance)
 		return nil
 	}
 }
@@ -97,7 +105,7 @@ func genProbe(instance *v1alpha1.HigressGateway) *apiv1.Probe {
 		FailureThreshold: 30,
 		ProbeHandler: apiv1.ProbeHandler{
 			HTTPGet: &apiv1.HTTPGetAction{
-				Path:   "healthz/ready",
+				Path:   "/healthz/ready",
 				Port:   intstr.FromInt(15021),
 				Scheme: "HTTP",
 			},
@@ -216,7 +224,7 @@ func genEnv(instance *v1alpha1.HigressGateway) []apiv1.EnvVar {
 		},
 		{
 			Name:  "ISTIO_META_CLUSTER_ID",
-			Value: "kubernetes",
+			Value: "Kubernetes",
 		},
 		{
 			Name:  "INSTANCE_NAME",
@@ -257,7 +265,7 @@ func genArgs(instance *v1alpha1.HigressGateway) []string {
 		"--domain",
 		instance.Namespace + ".svc.cluster.local",
 		"--proxyLogLevel=warning",
-		"--proxyComponetLogLevel=misc:error",
+		"--proxyComponentLogLevel=misc:error",
 		"--log_output_level=all:info",
 		"--serviceCluster=higress-gateway",
 	}
@@ -351,7 +359,7 @@ func genVolumes(instance *v1alpha1.HigressGateway) []apiv1.Volume {
 		VolumeSource: apiv1.VolumeSource{
 			ConfigMap: &apiv1.ConfigMapVolumeSource{
 				LocalObjectReference: apiv1.LocalObjectReference{
-					Name: "higress-config",
+					Name: controller.HigressGatewayConfig,
 				},
 			},
 		},

@@ -9,18 +9,26 @@ import (
 	"github.com/alibaba/higress/api/v1alpha1"
 )
 
+const (
+	HigressGatewayServiceName = "higress-gateway"
+)
+
 func initService(svc *apiv1.Service, instance *v1alpha1.HigressGateway) *apiv1.Service {
 	*svc = apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        instance.Name,
+			Name:        HigressGatewayServiceName,
 			Namespace:   instance.Namespace,
 			Labels:      instance.Labels,
 			Annotations: instance.Annotations,
 		},
-		Spec: apiv1.ServiceSpec{
-			Selector: instance.Spec.SelectorLabels,
-		},
 	}
+
+	updateServiceSpec(svc, instance)
+	return svc
+}
+
+func updateServiceSpec(svc *apiv1.Service, instance *v1alpha1.HigressGateway) {
+	svc.Spec.Selector = instance.Spec.SelectorLabels
 
 	if instance.Spec.NetWorkGateway != "" {
 		svc.ObjectMeta.Labels["topology.istio.io/network"] = instance.Spec.NetWorkGateway
@@ -65,13 +73,11 @@ func initService(svc *apiv1.Service, instance *v1alpha1.HigressGateway) *apiv1.S
 			},
 		}
 	}
-
-	return svc
 }
 
 func muteService(svc *apiv1.Service, instance *v1alpha1.HigressGateway) controllerutil.MutateFn {
 	return func() error {
-		initService(svc, instance)
+		updateServiceSpec(svc, instance)
 		return nil
 	}
 }

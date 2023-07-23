@@ -19,18 +19,18 @@ package higresscontroller
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/equality"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apixv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -87,6 +87,8 @@ func (r *HigressControllerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, err
 	}
 
+	r.setDefaultValues(instance)
+
 	// if DeletionTimestamp is not nil, it means is marked to be deleted
 	if instance.GetDeletionTimestamp() != nil {
 		if controllerutil.ContainsFinalizer(instance, finalizer) {
@@ -117,33 +119,40 @@ func (r *HigressControllerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// add finalizer for this CR
 	if controllerutil.AddFinalizer(instance, finalizer) {
 		if err = r.Update(ctx, instance); err != nil {
+			logger.Error(err, "Failed to add finalizer for higressController")
 			return ctrl.Result{}, err
 		}
 	}
 
-	if r.createCRDs(ctx, logger); err != nil {
+	if err = r.createCRDs(ctx, logger); err != nil {
+		logger.Error(err, "Failed to create crds")
 		return ctrl.Result{}, err
 	}
 
 	if err = r.createServiceAccount(ctx, instance, logger); err != nil {
+		logger.Error(err, "Failed to create serviceAccount")
 		return ctrl.Result{}, err
 	}
 
 	if err = r.createRBAC(ctx, instance, logger); err != nil {
+		logger.Error(err, "Failed to create rbac")
 		return ctrl.Result{}, err
 	}
 
 	if err = r.createDeployment(ctx, instance, logger); err != nil {
+		logger.Error(err, "Failed to create deployment")
 		return ctrl.Result{}, err
 	}
 
 	if err = r.createService(ctx, instance, logger); err != nil {
+		logger.Error(err, "Failed to create service")
 		return ctrl.Result{}, err
 	}
 
 	if !instance.Status.Deployed {
 		instance.Status.Deployed = true
 		if err = r.Status().Update(ctx, instance); err != nil {
+			logger.Error(err, "Failed to update higressController/status")
 			return ctrl.Result{}, err
 		}
 	}
@@ -178,7 +187,7 @@ func (r *HigressControllerReconciler) createServiceAccount(ctx context.Context, 
 
 	exist, err := CreateIfNotExits(ctx, r.Client, sa)
 	if err != nil {
-		logger.Error(err, "Failed to create serviceAccount for HigressController(%v)", instance.Name)
+		logger.Error(err, fmt.Sprintf("Failed to create serviceAccount for HigressController(%v)", instance.Name))
 		return err
 	}
 
@@ -201,8 +210,10 @@ func (r *HigressControllerReconciler) createRBAC(ctx context.Context, instance *
 	}
 
 	var (
-		cr  = &rbacv1.ClusterRole{}
-		crb = &rbacv1.ClusterRoleBinding{}
+		role = &rbacv1.Role{}
+		rb   = &rbacv1.RoleBinding{}
+		cr   = &rbacv1.ClusterRole{}
+		crb  = &rbacv1.ClusterRoleBinding{}
 	)
 
 	initClusterRole(cr, instance)
@@ -212,6 +223,16 @@ func (r *HigressControllerReconciler) createRBAC(ctx context.Context, instance *
 
 	initClusterRoleBinding(crb, instance)
 	if err := CreateOrUpdate(ctx, r.Client, "ClusterRoleBinding", crb, muteClusterRoleBinding(crb, instance), log); err != nil {
+		return err
+	}
+
+	initRole(role, instance)
+	if err := CreateOrUpdate(ctx, r.Client, "role", role, muteRole(role, instance), log); err != nil {
+		return err
+	}
+
+	initRoleBinding(rb, instance)
+	if err := CreateOrUpdate(ctx, r.Client, "roleBinding", rb, muteRoleBinding(rb, instance), log); err != nil {
 		return err
 	}
 
@@ -292,4 +313,24 @@ func (r *HigressControllerReconciler) createCRDs(ctx context.Context, logger log
 		}
 	}
 	return nil
+}
+
+func (r *HigressControllerReconciler) setDefaultValues(instance *operatorv1alpha1.HigressController) {
+	if instance.Spec.RBAC == nil {
+		instance.Spec.RBAC = &operatorv1alpha1.RBAC{Enable: true}
+	}
+	// serviceAccount
+	if instance.Spec.ServiceAccount == nil {
+		instance.Spec.ServiceAccount = &operatorv1alpha1.ServiceAccount{Enable: true, Name: "higress-gateway"}
+	}
+	// SelectorLabels
+	if len(instance.Spec.SelectorLabels) == 0 {
+		instance.Spec.SelectorLabels = map[string]string{
+			"app": "higress-controller",
+		}
+	}
+	// namespace
+	if instance.Namespace == "" {
+		instance.Namespace = "default"
+	}
 }

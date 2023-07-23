@@ -7,18 +7,11 @@ metadata:
     app.kubernetes.io/part-of: higressoperator
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: higressoperator
-  name: higresscontroller-sample
+  name: higress-controller
+  namespace: higress-system
 spec:
-  selectorLabels:
-    app: higress-controller
-  rbac:
-    enable: true
-  serviceAccount:
-    enable: true
   enableStatus: true
-  enableHigressIstio: false
-  enableIstioAPI: false
-  local: false
+  local: true
   jwtPolicy: "third-party-jwt"
   controller:
     name: "controller"
@@ -28,6 +21,7 @@ spec:
       imagePullPolicy: "IfNotPresent"
     gatewayName: "higress-gateway"
     ingressClass: "higress"
+    sdsTokenAud: "istio-ca"
   pilot:
     name: "pilot"
     image:
@@ -43,6 +37,5 @@ spec:
     keepaliveMaxServerConnectionAge: 30m
     clusterDomain: "cluster.local"
     oneNamespace: false
-    jwtPolicy: "third-party-jwt"
     enableProtocolSniffingForOutbound: true
     enableProtocolSniffingForInbound: true

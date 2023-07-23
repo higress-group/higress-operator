@@ -12,6 +12,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	operatorv1alpha1 "github.com/alibaba/higress/api/v1alpha1"
+	"github.com/alibaba/higress/internal/controller"
+)
+
+const (
+	HigressCoreName = "higress-core"
+	DiscoveryName   = "discovery"
 )
 
 func initDeployment(deploy *appsv1.Deployment, instance *operatorv1alpha1.HigressController) *appsv1.Deployment {
@@ -21,60 +27,74 @@ func initDeployment(deploy *appsv1.Deployment, instance *operatorv1alpha1.Higres
 			Namespace: instance.Namespace,
 			Labels:    instance.Labels,
 		},
-		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: instance.Spec.SelectorLabels,
+	}
+
+	updateDeploymentSpec(deploy, instance)
+	return deploy
+}
+
+func updateDeploymentSpec(deploy *appsv1.Deployment, instance *operatorv1alpha1.HigressController) {
+	deploy.Spec = appsv1.DeploymentSpec{
+		Selector: &metav1.LabelSelector{
+			MatchLabels: instance.Spec.SelectorLabels,
+		},
+		Replicas: instance.Spec.Replicas,
+		Template: apiv1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      instance.Name,
+				Namespace: instance.Namespace,
+				Labels:    instance.Spec.SelectorLabels,
 			},
-			Replicas: instance.Spec.Replicas,
-			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      instance.Name,
-					Namespace: instance.Namespace,
-					Labels:    instance.Spec.SelectorLabels,
-				},
-				Spec: apiv1.PodSpec{
-					ServiceAccountName: getServiceAccount(instance),
-					Containers: []apiv1.Container{
-						{
-							Name:            instance.Spec.Controller.Name,
-							Image:           genImage(instance.Spec.Controller.Image.Repository, instance.Spec.Controller.Image.Tag),
-							ImagePullPolicy: instance.Spec.Controller.Image.ImagePullPolicy,
-							Args:            genControllerArgs(instance),
-							Ports:           genControllerPorts(instance),
-							SecurityContext: genControllerSecurityContext(instance),
-							Env:             genControllerEnv(instance),
-						},
+			Spec: apiv1.PodSpec{
+				ServiceAccountName: getServiceAccount(instance),
+				Containers: []apiv1.Container{
+					{
+						Name:            genControllerName(instance),
+						Image:           genImage(instance.Spec.Controller.Image.Repository, instance.Spec.Controller.Image.Tag),
+						ImagePullPolicy: instance.Spec.Controller.Image.ImagePullPolicy,
+						Args:            genControllerArgs(instance),
+						Ports:           genControllerPorts(instance),
+						SecurityContext: genControllerSecurityContext(instance),
+						Env:             genControllerEnv(instance),
+						VolumeMounts:    genControllerVolumeMounts(instance),
 					},
 				},
+				Volumes: genVolumes(instance),
 			},
 		},
 	}
-
 	if !instance.Spec.EnableHigressIstio {
 		pilot := apiv1.Container{
-			Name:            instance.Spec.Pilot.Name,
+			Name:            genPilotName(instance),
 			Image:           genImage(instance.Spec.Pilot.Image.Repository, instance.Spec.Pilot.Image.Tag),
 			Args:            genPilotArgs(instance),
 			Ports:           genPilotPorts(instance),
 			SecurityContext: genPilotSecurityContext(instance),
 			Env:             genPilotEnv(instance),
 			ReadinessProbe:  genPilotProbe(instance),
+			VolumeMounts:    genPilotVolumeMounts(instance),
 		}
 
 		deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, pilot)
 	}
-	return deploy
 }
 
 func muteDeployment(deploy *appsv1.Deployment, instance *operatorv1alpha1.HigressController) controllerutil.MutateFn {
 	return func() error {
-		deploy = initDeployment(deploy, instance)
+		updateDeploymentSpec(deploy, instance)
 		return nil
 	}
 }
 
 func genImage(repository string, tag string) string {
 	return fmt.Sprintf("%v:%v", repository, tag)
+}
+
+func genPilotName(instance *operatorv1alpha1.HigressController) string {
+	if instance.Spec.Pilot.Name != "" {
+		return instance.Spec.Pilot.Name
+	}
+	return DiscoveryName
 }
 
 func genPilotProbe(instance *operatorv1alpha1.HigressController) *apiv1.Probe {
@@ -115,7 +135,7 @@ func genPilotEnv(instance *operatorv1alpha1.HigressController) []apiv1.EnvVar {
 		},
 		{
 			Name:  "JWT_POLICY",
-			Value: pilot.JwtPolicy,
+			Value: instance.Spec.JwtPolicy,
 		},
 		{
 			Name:  "PILOT_CERT_PROVIDER",
@@ -184,7 +204,7 @@ func genPilotEnv(instance *operatorv1alpha1.HigressController) []apiv1.EnvVar {
 		})
 	}
 
-	clusterId := "Kubernetes"
+	clusterId := "kubernetes"
 	if multiCluster := instance.Spec.MultiCluster; multiCluster != nil && multiCluster.Enable {
 		clusterId = instance.Spec.MultiCluster.ClusterName
 	}
@@ -274,6 +294,52 @@ func genPilotArgs(instance *operatorv1alpha1.HigressController) []string {
 	return args
 }
 
+func genPilotVolumeMounts(instance *operatorv1alpha1.HigressController) []apiv1.VolumeMount {
+	vms := []apiv1.VolumeMount{
+		{
+			Name:      "config",
+			MountPath: "/etc/istio/config",
+		},
+		{
+			Name:      "local-certs",
+			MountPath: "/var/run/secrets/istio-dns",
+		},
+		{
+			Name:      "cacerts",
+			MountPath: "/etc/cacerts",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "istio-kubeconfig",
+			MountPath: "/var/run/secrets/remote",
+			ReadOnly:  true,
+		},
+	}
+	pilot := instance.Spec.Pilot
+	if instance.Spec.JwtPolicy == "third-party-jwt" {
+		vms = append(vms, apiv1.VolumeMount{
+			Name:      "istio-token",
+			MountPath: "/var/run/secrets/tokens",
+			ReadOnly:  true,
+		})
+	}
+	if pilot.JwksResolveExtraRootCA != "" {
+		vms = append(vms, apiv1.VolumeMount{
+			Name:      "extracacerts",
+			MountPath: "/cacerts",
+		})
+	}
+
+	return vms
+}
+
+func genControllerName(instance *operatorv1alpha1.HigressController) string {
+	if instance.Spec.Controller.Name != "" {
+		return instance.Spec.Controller.Name
+	}
+	return HigressCoreName
+}
+
 func genControllerArgs(instance *operatorv1alpha1.HigressController) []string {
 	var args []string
 
@@ -343,4 +409,99 @@ func genControllerPorts(instance *operatorv1alpha1.HigressController) []apiv1.Co
 			Name:          "grpc",
 		},
 	}
+}
+
+func genControllerVolumeMounts(instance *operatorv1alpha1.HigressController) []apiv1.VolumeMount {
+	return []apiv1.VolumeMount{
+		{
+			Name:      "log",
+			MountPath: "/var/log",
+		},
+	}
+}
+
+func genVolumes(instance *operatorv1alpha1.HigressController) []apiv1.Volume {
+	optional := true
+	volumes := []apiv1.Volume{
+		{
+			Name: "log",
+			VolumeSource: apiv1.VolumeSource{
+				EmptyDir: &apiv1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: "local-certs",
+			VolumeSource: apiv1.VolumeSource{
+				EmptyDir: &apiv1.EmptyDirVolumeSource{
+					Medium: apiv1.StorageMediumMemory,
+				},
+			},
+		},
+		{
+			Name: "cacerts",
+			VolumeSource: apiv1.VolumeSource{
+				Secret: &apiv1.SecretVolumeSource{
+					SecretName: "cacerts",
+					Optional:   &optional,
+				},
+			},
+		},
+		{
+			Name: "istio-kubeconfig",
+			VolumeSource: apiv1.VolumeSource{
+				Secret: &apiv1.SecretVolumeSource{
+					SecretName: "istio-kubeconfig",
+					Optional:   &optional,
+				},
+			},
+		},
+	}
+
+	if !instance.Spec.EnableHigressIstio {
+		volumes = append(volumes, apiv1.Volume{
+			Name: "config",
+			VolumeSource: apiv1.VolumeSource{
+				ConfigMap: &apiv1.ConfigMapVolumeSource{
+					LocalObjectReference: apiv1.LocalObjectReference{
+						Name: controller.HigressGatewayConfig,
+					},
+				},
+			},
+		})
+	}
+
+	expirationSeconds := int64(43200)
+	if instance.Spec.JwtPolicy == "third-party-jwt" {
+		volumes = append(volumes, apiv1.Volume{
+			Name: "istio-token",
+			VolumeSource: apiv1.VolumeSource{
+				Projected: &apiv1.ProjectedVolumeSource{
+					Sources: []apiv1.VolumeProjection{
+						{
+							ServiceAccountToken: &apiv1.ServiceAccountTokenProjection{
+								Audience:          instance.Spec.Controller.SDSTokenAud,
+								ExpirationSeconds: &expirationSeconds,
+								Path:              "istio-token",
+							},
+						},
+					},
+				},
+			},
+		})
+	}
+
+	if instance.Spec.Pilot.JwksResolveExtraRootCA != "" {
+		volumes = append(volumes, apiv1.Volume{
+			Name: "extracacerts",
+			VolumeSource: apiv1.VolumeSource{
+				ConfigMap: &apiv1.ConfigMapVolumeSource{
+					LocalObjectReference: apiv1.LocalObjectReference{
+						Name: "pilot-jwks-extra-cacerts" + instance.Spec.Revision,
+					},
+				},
+			},
+		})
+	}
+
+	return volumes
 }

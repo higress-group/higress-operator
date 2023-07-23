@@ -21,9 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // HigressGatewaySpec defines the desired state of HigressGateway
 type HigressGatewaySpec struct {
 	CRDCommonFields       `json:",inline"`
@@ -84,19 +81,19 @@ type Skywalking struct {
 }
 
 type MeshConfig struct {
-	TrustDomain              string         `json:"trustDomain"`
-	AccessLogEncoding        string         `json:"accessLogEncoding"`
-	AccessLogFile            string         `json:"accessLogFile"`
-	IngressControllerMode    string         `json:"ingressControllerMode"`
-	AccessLogFormat          string         `json:"accessLogFormat"`
-	DnsRefreshRate           string         `json:"dnsRefreshRate"`
-	EnableAutoMtls           bool           `json:"enableAutoMtls"`
-	EnablePrometheusMerge    bool           `json:"enablePrometheusMerge"`
-	ProtocolDetectionTimeout string         `json:"protocolDetectionTimeout"`
-	ConfigSources            []ConfigSource `json:"configSources"`
-	DefaultConfig            ProxyConfig    `json:"defaultConfig"`
+	TrustDomain              string         `json:"trustDomain" yaml:"trustDomain"`
+	AccessLogEncoding        string         `json:"accessLogEncoding" yaml:"accessLogEncoding"`
+	AccessLogFile            string         `json:"accessLogFile" yaml:"accessLogFile"`
+	IngressControllerMode    string         `json:"ingressControllerMode" yaml:"ingressControllerMode"`
+	AccessLogFormat          string         `json:"accessLogFormat" yaml:"accessLogFormat"`
+	DnsRefreshRate           string         `json:"dnsRefreshRate" yaml:"dnsRefreshRate"`
+	EnableAutoMtls           bool           `json:"enableAutoMtls" yaml:"enableAutoMtls"`
+	EnablePrometheusMerge    bool           `json:"enablePrometheusMerge" yaml:"enablePrometheusMerge"`
+	ProtocolDetectionTimeout string         `json:"protocolDetectionTimeout" yaml:"protocolDetectionTimeout"`
+	ConfigSources            []ConfigSource `json:"configSources" yaml:"configSources"`
+	DefaultConfig            ProxyConfig    `json:"defaultConfig" yaml:"defaultConfig"`
 	// +kubebuilder:validation:Optional
-	RootNamespace string `json:"rootNamespace"`
+	RootNamespace string `json:"rootNamespace" yaml:"rootNamespace"`
 }
 
 type Network struct {
@@ -104,49 +101,49 @@ type Network struct {
 	Gateways  []Gateway  `json:"gateways"`
 }
 type Endpoint struct {
-	FromCidr     string `json:"fromCidr"`
-	FromRegistry string `json:"fromRegistry"`
+	FromCidr     string `json:"fromCidr" yaml:"fromCidr"`
+	FromRegistry string `json:"fromRegistry" yaml:"fromRegistry"`
 }
 type Gateway struct {
-	Address             string `json:"address"`
-	RegistryServiceName string `json:"registryServiceName"`
-	Port                int32  `json:"port"`
+	Address             string `json:"address" yaml:"address"`
+	RegistryServiceName string `json:"registryServiceName" yaml:"registryServiceName"`
+	Port                int32  `json:"port" yaml:"port"`
 }
 type ConfigSource struct {
-	Address string `json:"address"`
+	Address string `json:"address" yaml:"address"`
 }
 type ProxyConfig struct {
 	// +kubebuilder:validation:Optional
-	DisableAlpnH2 bool `json:"disableAlpnH2"`
+	DisableAlpnH2 bool `json:"disableAlpnH2" yaml:"disableAlpnH2"`
 	// +kubebuilder:validation:Optional
-	MeshId string `json:"meshId"`
+	MeshId string `json:"meshId" yaml:"meshId"`
 	// +kubebuilder:validation:Optional
-	Tracing *Tracing `json:"tracing"`
+	Tracing *Tracing `json:"tracing" yaml:"tracing"`
 	// +kubebuilder:validation:Optional
-	DiscoveryAddress string `json:"discoveryAddress"`
+	DiscoveryAddress string `json:"discoveryAddress" yaml:"discoveryAddress"`
 	// +kubebuilder:validation:Optional
-	ProxyStatsMatcher *ProxyStatsMatcher `json:"proxyStatsMatcher"`
+	ProxyStatsMatcher *ProxyStatsMatcher `json:"proxyStatsMatcher" yaml:"proxyStatsMatcher"`
 }
 type ProxyStatsMatcher struct {
 	// +kubebuilder:validation:Optional
-	InclusionPrefixes []string `json:"inclusionPrefixes"`
+	InclusionPrefixes []string `json:"inclusionPrefixes" yaml:"inclusionPrefixes"`
 	// +kubebuilder:validation:Optional
-	InclusionSuffixes []string `json:"inclusionSuffixes"`
+	InclusionSuffixes []string `json:"inclusionSuffixes" yaml:"inclusionSuffixes"`
 	// +kubebuilder:validation:Optional
-	InclusionRegexps []string `json:"inclusionRegexps"`
+	InclusionRegexps []string `json:"inclusionRegexps" yaml:"inclusionRegexps"`
 }
 
 type Tracing struct {
 	// +kubebuilder:validation:Optional
-	Zipkin *TracingZipkin `json:"zipkin"`
+	Zipkin *TracingZipkin `json:"zipkin" yaml:"zipkin"`
 	// +kubebuilder:validation:Optional
-	Lightstep *TracingLightstep `json:"lightstep"`
+	Lightstep *TracingLightstep `json:"lightstep" yaml:"lightstep"`
 	// +kubebuilder:validation:Optional
-	Datadog *TracingDatadog `json:"datadog"`
+	Datadog *TracingDatadog `json:"datadog" yaml:"datadog"`
 	// +kubebuilder:validation:Optional
-	Stackdriver *TracingStackdriver `json:"stackdriver"`
+	Stackdriver *TracingStackdriver `json:"stackdriver" yaml:"stackdriver"`
 	// +kubebuilder:validation:Optional
-	OpenCensusAgent *TracingOpencensusagent `json:"openCensusAgent"`
+	OpenCensusAgent *TracingOpencensusagent `json:"openCensusAgent" yaml:"openCensusAgent"`
 }
 
 type TracingZipkin struct {

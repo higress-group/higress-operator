@@ -20,9 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // HigressControllerSpec defines the desired state of HigressController
 type HigressControllerSpec struct {
 	CRDCommonFields `json:",inline"`
@@ -64,6 +61,7 @@ type ControllerSpec struct {
 	IngressClass string `json:"ingressClass"`
 	// +kubebuilder:validation:Optional
 	WatchNamespace string `json:"watchNamespace"`
+	SDSTokenAud    string `json:"sdsTokenAud"`
 }
 
 type PilotSpec struct {
@@ -78,7 +76,6 @@ type PilotSpec struct {
 	KeepaliveMaxServerConnectionAge   string   `json:"keepaliveMaxServerConnectionAge"`
 	ClusterDomain                     string   `json:"clusterDomain"`
 	OneNamespace                      bool     `json:"oneNamespace"`
-	JwtPolicy                         string   `json:"jwtPolicy"`
 	EnableProtocolSniffingForOutbound bool     `json:"enableProtocolSniffingForOutbound"`
 	EnableProtocolSniffingForInbound  bool     `json:"enableProtocolSniffingForInbound"`
 }

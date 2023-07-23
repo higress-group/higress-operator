@@ -14,45 +14,106 @@ const (
 
 func defaultRules() []rbacv1.PolicyRule {
 	rules := []rbacv1.PolicyRule{
+		// ingress controller
 		{
 			Verbs:     []string{"get", "list", "watch"},
-			APIGroups: []string{""},
-			Resources: []string{"services", "endpoints"},
+			APIGroups: []string{"networking.k8s.io", "extensions"},
+			Resources: []string{"ingresses", "ingressclasses"},
 		},
+		{
+			Verbs:     []string{"*"},
+			APIGroups: []string{"networking.k8s.io", "extensions"},
+			Resources: []string{"ingresses/status"},
+		},
+		// Needed for multicluster secret reading, possibly ingress certs in the future
 		{
 			Verbs:     []string{"get", "list", "watch", "create", "update"},
 			APIGroups: []string{""},
 			Resources: []string{"secrets"},
 		},
+		// required for CA's namespace controller
 		{
 			Verbs:     []string{"get", "list", "watch", "update", "create"},
 			APIGroups: []string{""},
 			Resources: []string{"configmaps"},
 		},
+		// Use for Kubernetes Service APIs
 		{
-			Verbs:     []string{"list", "watch"},
+			APIGroups: []string{"networking.x-k8s.io", "gateway.networking.k8s.io"},
+			Resources: []string{"*"},
+			Verbs:     []string{"get", "watch", "list", "update"},
+		},
+		//  discovery and routing
+		{
+			Verbs:     []string{"list", "watch", "get"},
 			APIGroups: []string{""},
-			Resources: []string{"pods", "nodes", "namespaces"},
+			Resources: []string{"pods", "nodes", "namespaces", "services", "endpoints"},
+		},
+		{
+			APIGroups: []string{"discovery.k8s.io"},
+			Resources: []string{"endpointslices"},
+			Verbs:     []string{"get", "watch", "list"},
 		},
 		{
 			Verbs:     []string{"create", "patch"},
 			APIGroups: []string{""},
 			Resources: []string{"events"},
 		},
+		// Istiod and bootstrap
 		{
+			Verbs:     []string{"update", "create", "get", "delete", "watch"},
+			APIGroups: []string{"certificates.k8s.io"},
+			Resources: []string{"certificatesigningrequests", "certificatesigningrequests/approval", "certificatesigningrequests/status"},
+		},
+		{
+			Verbs:         []string{"approve"},
+			APIGroups:     []string{"certificates.k8s.io"},
+			Resources:     []string{"signers"},
+			ResourceNames: []string{"kubernetes.io/legacy-unknown"},
+		},
+		// Used by Istiod to verify the JWT tokens
+		{
+			Verbs:     []string{"create"},
+			APIGroups: []string{"authentication.k8s.io"},
+			Resources: []string{"tokenreviews"},
+		},
+		// Used by Istiod to verify gateway SDS
+		{
+			Verbs:     []string{"create"},
+			APIGroups: []string{"authorization.k8s.io"},
+			Resources: []string{"subjectaccessreviews"},
+		},
+		// Used for MCS serviceexport management
+		{
+			APIGroups: []string{"multicluster.x-k8s.io"},
+			Resources: []string{"serviceexports"},
+			Verbs:     []string{"get", "watch", "list", "create", "delete"},
+		},
+		// Used for MCS serviceimport management
+		{
+			APIGroups: []string{"multicluster.x-k8s.io"},
+			Resources: []string{"serviceimports"},
+			Verbs:     []string{"get", "watch", "list"},
+		},
+		// sidecar injection controller
+		{
+			APIGroups: []string{"admissionregistration.k8s.io"},
+			Resources: []string{"mutatingwebhookconfigurations"},
+			Verbs:     []string{"get", "list", "watch", "update", "patch"},
+		},
+		// configuration validation webhook controller
+		{
+			APIGroups: []string{"admissionregistration.k8s.io"},
+			Resources: []string{"validatingwebhookconfigurations"},
+			Verbs:     []string{"get", "list", "watch", "update"},
+		},
+		// istio configuration
+		// removing CRD permissions can break older versions of Istio running alongside this control plane (https://github.com/istio/istio/issues/29382)
+		// please proceed with caution
+		{
+			APIGroups: []string{"config.istio.io", "security.istio.io", "networking.istio.io", "authentication.istio.io", "rbac.istio.io", "telemetry.istio.io", "extensions.istio.io"},
+			Resources: []string{"*"},
 			Verbs:     []string{"get", "list", "watch"},
-			APIGroups: []string{"networking.k8s.io"},
-			Resources: []string{"ingresses"},
-		},
-		{
-			Verbs:     []string{"update"},
-			APIGroups: []string{"networking.k8s.io"},
-			Resources: []string{"ingresses/status"},
-		},
-		{
-			Verbs:     []string{"get", "create", "watch", "list", "update", "patch"},
-			APIGroups: []string{"networking.k8s.io"},
-			Resources: []string{"ingressclasses"},
 		},
 		{
 			Verbs:     []string{"get", "create", "watch", "list", "update", "patch"},
@@ -64,6 +125,7 @@ func defaultRules() []rbacv1.PolicyRule {
 			APIGroups: []string{"networking.higress.io"},
 			Resources: []string{"http2rpcs", "mcpbridges"},
 		},
+		// auto-detect installed CRD definitions
 		{
 			Verbs:     []string{"get", "watch", "list"},
 			APIGroups: []string{"apiextensions.k8s.io"},

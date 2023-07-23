@@ -1171,6 +1171,8 @@ spec:
                           Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                         type: object
                     type: object
+                  sdsTokenAud:
+                    type: string
                   securityContext:
                     description: SecurityContext holds security configuration that
                       will be applied to a container. Some fields are present in both
@@ -1348,6 +1350,7 @@ spec:
                 - gatewayName
                 - image
                 - ingressClass
+                - sdsTokenAud
                 type: object
               enableHigressIstio:
                 type: boolean
@@ -1436,8 +1439,6 @@ spec:
                       x-kubernetes-map-type: atomic
                     type: array
                   jwksResolveExtraRootCA:
-                    type: string
-                  jwtPolicy:
                     type: string
                   keepaliveMaxServerConnectionAge:
                     type: string
@@ -1866,7 +1867,6 @@ spec:
                 - enableProtocolSniffingForInbound
                 - enableProtocolSniffingForOutbound
                 - image
-                - jwtPolicy
                 - keepaliveMaxServerConnectionAge
                 - oneNamespace
                 type: object
