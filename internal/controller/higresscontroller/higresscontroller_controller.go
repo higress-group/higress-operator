@@ -296,18 +296,20 @@ func (r *HigressControllerReconciler) createCRDs(ctx context.Context, logger log
 
 	cli := apixClient.CustomResourceDefinitions()
 	for _, crd := range crds {
-		logger.Info(fmt.Sprintf("createOrUpdate crd %v", crd))
 		if existing, err := cli.Get(ctx, crd.Name, metav1.GetOptions{TypeMeta: crd.TypeMeta}); err != nil {
 			if !errors.IsNotFound(err) {
 				logger.Error(err, fmt.Sprintf("failed to get CRD %v", crd.Name))
 				return err
 			}
 			if _, err = cli.Create(ctx, crd, metav1.CreateOptions{TypeMeta: crd.TypeMeta}); err != nil {
+				logger.Error(err, fmt.Sprintf("failed to create CRD %v", crd.Name))
 				return err
 			}
-		} else if !equality.Semantic.DeepEqual(existing, crd) {
-			logger.Info(fmt.Sprintf("previous CRD %v found, and it's different from origin", crd.Name))
-			if _, err = cli.Update(ctx, crd, metav1.UpdateOptions{TypeMeta: crd.TypeMeta}); err != nil {
+		} else if !equality.Semantic.DeepEqual(existing.Spec, crd.Spec) {
+			// todo(lql): We should check if it has changed before updating it
+			existing.Spec = crd.Spec
+			if _, err = cli.Update(ctx, existing, metav1.UpdateOptions{TypeMeta: crd.TypeMeta}); err != nil {
+				logger.Error(err, fmt.Sprintf("failed to update CRD %v", crd.Name))
 				return err
 			}
 		}
@@ -321,16 +323,12 @@ func (r *HigressControllerReconciler) setDefaultValues(instance *operatorv1alpha
 	}
 	// serviceAccount
 	if instance.Spec.ServiceAccount == nil {
-		instance.Spec.ServiceAccount = &operatorv1alpha1.ServiceAccount{Enable: true, Name: "higress-gateway"}
+		instance.Spec.ServiceAccount = &operatorv1alpha1.ServiceAccount{Enable: true, Name: "higress-controller"}
 	}
 	// SelectorLabels
 	if len(instance.Spec.SelectorLabels) == 0 {
 		instance.Spec.SelectorLabels = map[string]string{
 			"app": "higress-controller",
 		}
-	}
-	// namespace
-	if instance.Namespace == "" {
-		instance.Namespace = "default"
 	}
 }

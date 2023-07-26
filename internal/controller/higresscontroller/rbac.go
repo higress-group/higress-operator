@@ -25,7 +25,7 @@ func defaultRules() []rbacv1.PolicyRule {
 			APIGroups: []string{"networking.k8s.io", "extensions"},
 			Resources: []string{"ingresses/status"},
 		},
-		// Needed for multicluster secret reading, possibly ingress certs in the future
+		// Needed for multi-cluster secret reading, possibly ingress certs in the future
 		{
 			Verbs:     []string{"get", "list", "watch", "create", "update"},
 			APIGroups: []string{""},
@@ -192,7 +192,7 @@ func muteClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1
 }
 
 func initRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressController) *rbacv1.RoleBinding {
-	rb = &rbacv1.RoleBinding{
+	*rb = rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getServiceAccount(instance),
 			Namespace: instance.Namespace,
@@ -221,7 +221,7 @@ func muteRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressC
 }
 
 func initRole(role *rbacv1.Role, instance *operatorv1alpha1.HigressController) *rbacv1.Role {
-	role = &rbacv1.Role{
+	*role = rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getServiceAccount(instance),
 			Namespace: instance.Namespace,

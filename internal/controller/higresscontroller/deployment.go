@@ -34,33 +34,31 @@ func initDeployment(deploy *appsv1.Deployment, instance *operatorv1alpha1.Higres
 }
 
 func updateDeploymentSpec(deploy *appsv1.Deployment, instance *operatorv1alpha1.HigressController) {
-	deploy.Spec = appsv1.DeploymentSpec{
-		Selector: &metav1.LabelSelector{
-			MatchLabels: instance.Spec.SelectorLabels,
+	deploy.Spec.Selector = &metav1.LabelSelector{
+		MatchLabels: instance.Spec.SelectorLabels,
+	}
+	deploy.Spec.Replicas = instance.Spec.Replicas
+	deploy.Spec.Template = apiv1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      instance.Name,
+			Namespace: instance.Namespace,
+			Labels:    instance.Spec.SelectorLabels,
 		},
-		Replicas: instance.Spec.Replicas,
-		Template: apiv1.PodTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      instance.Name,
-				Namespace: instance.Namespace,
-				Labels:    instance.Spec.SelectorLabels,
-			},
-			Spec: apiv1.PodSpec{
-				ServiceAccountName: getServiceAccount(instance),
-				Containers: []apiv1.Container{
-					{
-						Name:            genControllerName(instance),
-						Image:           genImage(instance.Spec.Controller.Image.Repository, instance.Spec.Controller.Image.Tag),
-						ImagePullPolicy: instance.Spec.Controller.Image.ImagePullPolicy,
-						Args:            genControllerArgs(instance),
-						Ports:           genControllerPorts(instance),
-						SecurityContext: genControllerSecurityContext(instance),
-						Env:             genControllerEnv(instance),
-						VolumeMounts:    genControllerVolumeMounts(instance),
-					},
+		Spec: apiv1.PodSpec{
+			ServiceAccountName: getServiceAccount(instance),
+			Containers: []apiv1.Container{
+				{
+					Name:            genControllerName(instance),
+					Image:           genImage(instance.Spec.Controller.Image.Repository, instance.Spec.Controller.Image.Tag),
+					ImagePullPolicy: instance.Spec.Controller.Image.ImagePullPolicy,
+					Args:            genControllerArgs(instance),
+					Ports:           genControllerPorts(instance),
+					SecurityContext: genControllerSecurityContext(instance),
+					Env:             genControllerEnv(instance),
+					VolumeMounts:    genControllerVolumeMounts(instance),
 				},
-				Volumes: genVolumes(instance),
 			},
+			Volumes: genVolumes(instance),
 		},
 	}
 	if !instance.Spec.EnableHigressIstio {
@@ -204,7 +202,7 @@ func genPilotEnv(instance *operatorv1alpha1.HigressController) []apiv1.EnvVar {
 		})
 	}
 
-	clusterId := "kubernetes"
+	clusterId := "Kubernetes"
 	if multiCluster := instance.Spec.MultiCluster; multiCluster != nil && multiCluster.Enable {
 		clusterId = instance.Spec.MultiCluster.ClusterName
 	}
