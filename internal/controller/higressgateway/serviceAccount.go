@@ -4,7 +4,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/alibaba/higress/api/v1alpha1"
+	"github.com/alibaba/higress/higress-operator/api/v1alpha1"
 )
 
 func initServiceAccount(sa *apiv1.ServiceAccount, instance *v1alpha1.HigressGateway) *apiv1.ServiceAccount {

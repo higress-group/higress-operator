@@ -10,8 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/alibaba/higress/api/v1alpha1"
-	"github.com/alibaba/higress/internal/controller"
+	"github.com/alibaba/higress/higress-operator/api/v1alpha1"
+	"github.com/alibaba/higress/higress-operator/internal/controller"
 )
 
 const (

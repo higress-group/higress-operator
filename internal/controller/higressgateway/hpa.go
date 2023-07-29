@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/alibaba/higress/api/v1alpha1"
+	"github.com/alibaba/higress/higress-operator/api/v1alpha1"
 )
 
 func initHPAv2(hpa *v2.HorizontalPodAutoscaler, instance *v1alpha1.HigressGateway) *v2.HorizontalPodAutoscaler {

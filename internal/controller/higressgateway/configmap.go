@@ -3,14 +3,14 @@ package higressgateway
 import (
 	"fmt"
 
-	"github.com/alibaba/higress/internal/controller"
 	"gopkg.in/yaml.v2"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	operatorv1alpha1 "github.com/alibaba/higress/api/v1alpha1"
-	"github.com/alibaba/higress/internal/controller/higresscontroller"
+	operatorv1alpha1 "github.com/alibaba/higress/higress-operator/api/v1alpha1"
+	"github.com/alibaba/higress/higress-operator/internal/controller"
+	"github.com/alibaba/higress/higress-operator/internal/controller/higresscontroller"
 )
 
 func initGatewayConfigMap(cm *apiv1.ConfigMap, instance *operatorv1alpha1.HigressGateway) (*apiv1.ConfigMap, error) {

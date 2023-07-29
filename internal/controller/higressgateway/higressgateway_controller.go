@@ -33,8 +33,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	operatorv1alpha1 "github.com/alibaba/higress/api/v1alpha1"
-	. "github.com/alibaba/higress/internal/controller"
+	operatorv1alpha1 "github.com/alibaba/higress/higress-operator/api/v1alpha1"
+	. "github.com/alibaba/higress/higress-operator/internal/controller"
 )
 
 const (

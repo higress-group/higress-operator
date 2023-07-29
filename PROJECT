@@ -6,7 +6,7 @@ domain: higress.io
 layout:
 - go.kubebuilder.io/v4
 projectName: higressoperator
-repo: github.com/alibaba/higress
+repo: github.com/alibaba/higress/higress-operator
 resources:
 - api:
     crdVersion: v1
@@ -15,7 +15,7 @@ resources:
   domain: higress.io
   group: operator
   kind: HigressController
-  path: github.com/alibaba/higress/api/v1alpha1
+  path: github.com/alibaba/higress/higress-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -24,6 +24,6 @@ resources:
   domain: higress.io
   group: operator
   kind: HigressGateway
-  path: github.com/alibaba/higress/api/v1alpha1
+  path: github.com/alibaba/higress/higress-operator/api/v1alpha1
   version: v1alpha1
 version: "3"

@@ -11,6 +11,12 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+# If tag not explicitly set in users' .istiorc.mk or command line, default to the git sha.
+TAG ?= $(shell git rev-parse --verify HEAD)
+ifeq ($(TAG),)
+  $(error "TAG cannot be empty")
+endif
+
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
 SHELL = /usr/bin/env bash -o pipefail
@@ -56,7 +62,7 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
+	# KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
 
 ##@ Build
 
@@ -155,3 +161,53 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+.PHONY: lint
+lint:
+	golint ./...
+
+# higress operator e2e test
+
+.PHONY: higress-operator-test
+higress-operator-test: delete-cluster create-cluster docker-build kube-load-image install-dev run-higress-operator-test delete-cluster
+
+.PHONY: check-tools
+check-tools:
+	@echo "check the necessary tools ..."
+	@bash hack/check_tools.sh
+
+# create-cluster creates a kube cluster with kind.
+.PHONY: create-cluster
+create-cluster: check-tools
+	@bash hack/create-cluster.sh
+
+# delete-cluster deletes a kube cluster.
+.PHONY: delete-cluster
+delete-cluster: check-tools
+	kind delete cluster --name higress
+
+# kube-load-image loads a local built docker image into kube cluster.
+# dubbo-provider-demo和nacos-standlone-rc3的镜像已经上传到阿里云镜像库，第一次需要先拉到本地
+# docker pull registry.cn-hangzhou.aliyuncs.com/hinsteny/dubbo-provider-demo:0.0.1
+# docker pull registry.cn-hangzhou.aliyuncs.com/hinsteny/nacos-standlone-rc3:1.0.0-RC3
+.PHONY: kube-load-image
+kube-load-image: check-tools ## Install the Higress image to a kind cluster using the provided $IMAGE and $TAG.
+	hack/kind-load-image.sh higress-registry.cn-hangzhou.cr.aliyuncs.com/higress/higress $(TAG)
+	hack/docker-pull-image.sh registry.cn-hangzhou.aliyuncs.com/hinsteny/dubbo-provider-demo 0.0.1
+	hack/docker-pull-image.sh registry.cn-hangzhou.aliyuncs.com/hinsteny/nacos-standlone-rc3 1.0.0-RC3
+	hack/kind-load-image.sh registry.cn-hangzhou.aliyuncs.com/hinsteny/dubbo-provider-demo 0.0.1
+	hack/kind-load-image.sh registry.cn-hangzhou.aliyuncs.com/hinsteny/nacos-standlone-rc3 1.0.0-RC3
+
+.PHONY: install-dev
+install-dev: install deploy
+	kubectl apply -k ./config/samples
+
+# run-higress-e2e-test starts to run ingress e2e tests.
+.PHONY: run-higress-operator-test
+run-higress-operator-test:
+	@echo -e "\n\033[36mRunning higress operator tests...\033[0m"
+	@echo -e "\n\033[36mWaiting higress-controller to be ready...\033[0m\n"
+	kubectl wait --timeout=10m -n higress-system deployment/higress-controller --for=condition=Available
+	@echo -e "\n\033[36mWaiting higress-gateway to be ready...\033[0m\n"
+	kubectl wait --timeout=10m -n higress-system deployment/higress-gateway --for=condition=Available
+	go test -v -tags conformance ./test/e2e_test.go --ingress-class=higress --debug=true

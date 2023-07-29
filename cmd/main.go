@@ -30,9 +30,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	operatorv1alpha1 "github.com/alibaba/higress/api/v1alpha1"
-	"github.com/alibaba/higress/internal/controller/higresscontroller"
-	"github.com/alibaba/higress/internal/controller/higressgateway"
+	operatorv1alpha1 "github.com/alibaba/higress/higress-operator/api/v1alpha1"
+	"github.com/alibaba/higress/higress-operator/internal/controller/higresscontroller"
+	"github.com/alibaba/higress/higress-operator/internal/controller/higressgateway"
 	//+kubebuilder:scaffold:imports
 )
 

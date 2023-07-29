@@ -5,7 +5,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	operatorv1alpha1 "github.com/alibaba/higress/api/v1alpha1"
+	operatorv1alpha1 "github.com/alibaba/higress/higress-operator/api/v1alpha1"
 )
 
 const (
