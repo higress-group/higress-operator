@@ -58,13 +58,21 @@ func updateServiceSpec(svc *apiv1.Service, instance *operatorv1alpha1.HigressCon
 				Port:     15014,
 			},
 		}
-		svc.Spec.Ports = append(svc.Spec.Ports, ports...)
+		set := make(map[string]struct{})
+		for _, port := range svc.Spec.Ports {
+			set[port.Name] = struct{}{}
+		}
+		for _, port := range ports {
+			if _, ok := set[port.Name]; !ok {
+				svc.Spec.Ports = append(svc.Spec.Ports, port)
+			}
+		}
 	}
 }
 
 func muteService(svc *apiv1.Service, instance *operatorv1alpha1.HigressController) controllerutil.MutateFn {
 	return func() error {
-		initService(svc, instance)
+		updateServiceSpec(svc, instance)
 		return nil
 	}
 }
