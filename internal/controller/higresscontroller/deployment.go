@@ -34,33 +34,36 @@ func initDeployment(deploy *appsv1.Deployment, instance *operatorv1alpha1.Higres
 }
 
 func updateDeploymentSpec(deploy *appsv1.Deployment, instance *operatorv1alpha1.HigressController) {
-	deploy.Spec.Selector = &metav1.LabelSelector{
-		MatchLabels: instance.Spec.SelectorLabels,
-	}
+	deploy.Spec.Selector = &metav1.LabelSelector{MatchLabels: instance.Spec.SelectorLabels}
+
 	deploy.Spec.Replicas = instance.Spec.Replicas
-	deploy.Spec.Template = apiv1.PodTemplateSpec{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name,
-			Namespace: instance.Namespace,
-			Labels:    instance.Spec.SelectorLabels,
-		},
-		Spec: apiv1.PodSpec{
-			ServiceAccountName: getServiceAccount(instance),
-			Containers: []apiv1.Container{
-				{
-					Name:            genControllerName(instance),
-					Image:           genImage(instance.Spec.Controller.Image.Repository, instance.Spec.Controller.Image.Tag),
-					ImagePullPolicy: instance.Spec.Controller.Image.ImagePullPolicy,
-					Args:            genControllerArgs(instance),
-					Ports:           genControllerPorts(instance),
-					SecurityContext: genControllerSecurityContext(instance),
-					Env:             genControllerEnv(instance),
-					VolumeMounts:    genControllerVolumeMounts(instance),
-				},
-			},
-			Volumes: genVolumes(instance),
-		},
+
+	controller.UpdateObjectMeta(&deploy.Spec.Template.ObjectMeta, instance, instance.Spec.SelectorLabels)
+
+	deploy.Spec.Template.Spec.ServiceAccountName = getServiceAccount(instance)
+
+	exist := false
+	for _, c := range deploy.Spec.Template.Spec.Containers {
+		if c.Name == genControllerName(instance) {
+			exist = true
+			break
+		}
 	}
+	if !exist {
+		deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, apiv1.Container{
+			Name:            genControllerName(instance),
+			Image:           genImage(instance.Spec.Controller.Image.Repository, instance.Spec.Controller.Image.Tag),
+			ImagePullPolicy: instance.Spec.Controller.Image.ImagePullPolicy,
+			Args:            genControllerArgs(instance),
+			Ports:           genControllerPorts(instance),
+			SecurityContext: genControllerSecurityContext(instance),
+			Env:             genControllerEnv(instance),
+			VolumeMounts:    genControllerVolumeMounts(instance),
+		})
+	}
+
+	deploy.Spec.Template.Spec.Volumes = genVolumes(instance)
+
 	if !instance.Spec.EnableHigressIstio {
 		pilot := apiv1.Container{
 			Name:            genPilotName(instance),
@@ -73,7 +76,16 @@ func updateDeploymentSpec(deploy *appsv1.Deployment, instance *operatorv1alpha1.
 			VolumeMounts:    genPilotVolumeMounts(instance),
 		}
 
-		deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, pilot)
+		exist = false
+		for _, c := range deploy.Spec.Template.Spec.Containers {
+			if c.Name == genPilotName(instance) {
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, pilot)
+		}
 	}
 }
 
@@ -420,6 +432,7 @@ func genControllerVolumeMounts(instance *operatorv1alpha1.HigressController) []a
 
 func genVolumes(instance *operatorv1alpha1.HigressController) []apiv1.Volume {
 	optional := true
+	defaultMode := int32(420)
 	volumes := []apiv1.Volume{
 		{
 			Name: "log",
@@ -441,6 +454,7 @@ func genVolumes(instance *operatorv1alpha1.HigressController) []apiv1.Volume {
 				Secret: &apiv1.SecretVolumeSource{
 					SecretName: "cacerts",
 					Optional:   &optional,
+					DefaultMode: &defaultMode,
 				},
 			},
 		},
@@ -450,6 +464,7 @@ func genVolumes(instance *operatorv1alpha1.HigressController) []apiv1.Volume {
 				Secret: &apiv1.SecretVolumeSource{
 					SecretName: "istio-kubeconfig",
 					Optional:   &optional,
+					DefaultMode: &defaultMode,
 				},
 			},
 		},

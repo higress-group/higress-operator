@@ -1,6 +1,8 @@
 package higresscontroller
 
 import (
+	"reflect"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -9,6 +11,7 @@ import (
 )
 
 const (
+	role        = "higress-controller"
 	clusterRole = "higress-controller"
 )
 
@@ -152,7 +155,6 @@ func initClusterRole(cr *rbacv1.ClusterRole, instance *operatorv1alpha1.HigressC
 
 func muteClusterRole(cr *rbacv1.ClusterRole, instance *operatorv1alpha1.HigressController) controllerutil.MutateFn {
 	return func() error {
-		cr.Name = clusterRole
 		cr.Rules = defaultRules()
 		return nil
 	}
@@ -167,26 +169,37 @@ func initClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1
 		ObjectMeta: metav1.ObjectMeta{
 			Name: getServiceAccount(instance),
 		},
-		RoleRef: rbacv1.RoleRef{
-			Kind:     "ClusterRole",
-			Name:     clusterRole,
-			APIGroup: "rbac.authorization.k8s.io",
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      getServiceAccount(instance),
-				Namespace: instance.Namespace,
-			},
-		},
 	}
 
+	updateClusterRoleBinding(crb, instance)
 	return crb
+}
+
+func updateClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1alpha1.HigressController) {
+	crb.RoleRef = rbacv1.RoleRef{
+		Kind:     "ClusterRole",
+		Name:     clusterRole,
+		APIGroup: "rbac.authorization.k8s.io",
+	}
+
+	subject := rbacv1.Subject{
+		Kind:      "ServiceAccount",
+		Name:      getServiceAccount(instance),
+		Namespace: instance.Namespace,
+	}
+
+	for _, sub := range crb.Subjects {
+		if reflect.DeepEqual(sub, subject) {
+			return
+		}
+	}
+
+	crb.Subjects = append(crb.Subjects, subject)
 }
 
 func muteClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1alpha1.HigressController) controllerutil.MutateFn {
 	return func() error {
-		crb = initClusterRoleBinding(crb, instance)
+		updateClusterRoleBinding(crb, instance)
 		return nil
 	}
 }
@@ -197,39 +210,51 @@ func initRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressC
 			Name:      getServiceAccount(instance),
 			Namespace: instance.Namespace,
 		},
-		RoleRef: rbacv1.RoleRef{
-			Kind:     "Role",
-			Name:     getServiceAccount(instance),
-			APIGroup: "rbac.authorization.k8s.io",
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      getServiceAccount(instance),
-				Namespace: instance.Namespace,
-			},
-		},
 	}
+
+	updateRoleBinding(rb, instance)
 	return rb
+}
+
+func updateRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressController) {
+	rb.RoleRef = rbacv1.RoleRef{
+		Kind:     "Role",
+		Name:     role,
+		APIGroup: "rbac.authorization.k8s.io",
+	}
+
+	subject := rbacv1.Subject{
+		Kind:      "ServiceAccount",
+		Name:      getServiceAccount(instance),
+		Namespace: instance.Namespace,
+	}
+
+	for _, sub := range rb.Subjects {
+		if reflect.DeepEqual(sub, subject) {
+			return
+		}
+	}
+
+	rb.Subjects = append(rb.Subjects, subject)
 }
 
 func muteRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressController) controllerutil.MutateFn {
 	return func() error {
-		initRoleBinding(rb, instance)
+		updateRoleBinding(rb, instance)
 		return nil
 	}
 }
 
-func initRole(role *rbacv1.Role, instance *operatorv1alpha1.HigressController) *rbacv1.Role {
-	*role = rbacv1.Role{
+func initRole(r *rbacv1.Role, instance *operatorv1alpha1.HigressController) *rbacv1.Role {
+	*r = rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getServiceAccount(instance),
+			Name:      role,
 			Namespace: instance.Namespace,
 		},
 		Rules: defaultRules(),
 	}
 
-	return role
+	return r
 }
 
 func muteRole(role *rbacv1.Role, instance *operatorv1alpha1.HigressController) controllerutil.MutateFn {

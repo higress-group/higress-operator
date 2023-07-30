@@ -1,6 +1,8 @@
 package higressgateway
 
 import (
+	"reflect"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -47,26 +49,37 @@ func initClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1
 		ObjectMeta: metav1.ObjectMeta{
 			Name: getServiceAccount(instance),
 		},
-		RoleRef: rbacv1.RoleRef{
-			Kind:     "ClusterRole",
-			Name:     clusterRole,
-			APIGroup: "rbac.authorization.k8s.io",
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      getServiceAccount(instance),
-				Namespace: instance.Namespace,
-			},
-		},
 	}
 
+	updateClusterRoleBinding(crb, instance)
 	return crb
+}
+
+func updateClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1alpha1.HigressGateway) {
+	crb.RoleRef = rbacv1.RoleRef{
+		Kind:     "ClusterRole",
+		Name:     clusterRole,
+		APIGroup: "rbac.authorization.k8s.io",
+	}
+
+	subject := rbacv1.Subject{
+		Kind:      "ServiceAccount",
+		Name:      getServiceAccount(instance),
+		Namespace: instance.Namespace,
+	}
+
+	for _, sub := range crb.Subjects {
+		if reflect.DeepEqual(sub, subject) {
+			return
+		}
+	}
+
+	crb.Subjects = append(crb.Subjects, subject)
 }
 
 func muteClusterRoleBinding(crb *rbacv1.ClusterRoleBinding, instance *operatorv1alpha1.HigressGateway) controllerutil.MutateFn {
 	return func() error {
-		initClusterRoleBinding(crb, instance)
+		updateClusterRoleBinding(crb, instance)
 		return nil
 	}
 }
@@ -93,9 +106,31 @@ func initRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressG
 	return rb
 }
 
+func updateRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressGateway) {
+	rb.RoleRef = rbacv1.RoleRef{
+		Kind:     "Role",
+		Name:     role,
+		APIGroup: "rbac.authorization.k8s.io",
+	}
+
+	subject := rbacv1.Subject{
+		Kind:      "ServiceAccount",
+		Name:      getServiceAccount(instance),
+		Namespace: instance.Namespace,
+	}
+
+	for _, sub := range rb.Subjects {
+		if reflect.DeepEqual(sub, subject) {
+			return
+		}
+	}
+
+	rb.Subjects = append(rb.Subjects, subject)
+}
+
 func muteRoleBinding(rb *rbacv1.RoleBinding, instance *operatorv1alpha1.HigressGateway) controllerutil.MutateFn {
 	return func() error {
-		initRoleBinding(rb, instance)
+		updateRoleBinding(rb, instance)
 		return nil
 	}
 }
