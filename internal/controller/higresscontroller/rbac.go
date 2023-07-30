@@ -234,7 +234,7 @@ func initRole(role *rbacv1.Role, instance *operatorv1alpha1.HigressController) *
 
 func muteRole(role *rbacv1.Role, instance *operatorv1alpha1.HigressController) controllerutil.MutateFn {
 	return func() error {
-		initRole(role, instance)
+		role.Rules = defaultRules()
 		return nil
 	}
 }

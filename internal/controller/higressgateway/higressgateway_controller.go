@@ -53,6 +53,8 @@ type HigressGatewayReconciler struct {
 
 //+kubebuilder:rbac:groups="",resources=pods;services;services/finalizers;endpoints;persistentvolumeclaims;events;configmaps;secrets;serviceaccounts;namespaces,verbs=create;update;get;list;watch;patch;delete
 
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings;roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
+
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
@@ -198,7 +200,7 @@ func (r *HigressGatewayReconciler) createRBAC(ctx context.Context, instance *ope
 	}
 
 	initRole(role, instance)
-	if err = CreateOrUpdate(ctx, r.Client, "role", cr, muteRole(role, instance), logger); err != nil {
+	if err = CreateOrUpdate(ctx, r.Client, "role", role, muteRole(role, instance), logger); err != nil {
 		return err
 	}
 

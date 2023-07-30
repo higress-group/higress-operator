@@ -18,7 +18,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-readonly KIND=${KIND:-~/go/bin/kind}
 readonly CLUSTER_NAME=${CLUSTER_NAME:-"higress"}
 
 # Docker variables
@@ -37,11 +36,11 @@ run::sed() {
 }
 
 kind::cluster::exists() {
-    ${KIND} get clusters | grep -q "$1"
+    kind get clusters | grep -q "$1"
 }
 
 kind::cluster::load() {
-    ${KIND} load docker-image \
+    kind load docker-image \
         --name "${CLUSTER_NAME}" \
         "$@"
 }

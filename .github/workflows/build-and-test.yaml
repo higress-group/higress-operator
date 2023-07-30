@@ -36,12 +36,12 @@ jobs:
 
       - name: Run Coverage Tests
         run: make test
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          fail_ci_if_error: true
-          files: ./coverage.xml
-          verbose: true
+#      - name: Upload coverage to Codecov
+#        uses: codecov/codecov-action@v3
+#        with:
+#          fail_ci_if_error: true
+#          files: ./coverage.xml
+#          verbose: true
 
   build:
     # The type of runner that the job will run on

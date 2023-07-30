@@ -1,6 +1,6 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+HUB ?= docker.io/higress-operator
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.26.1
 
@@ -16,6 +16,8 @@ TAG ?= $(shell git rev-parse --verify HEAD)
 ifeq ($(TAG),)
   $(error "TAG cannot be empty")
 endif
+
+IMG ?= "${HUB}:${TAG}"
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
@@ -62,7 +64,7 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests.
-	# KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
+	 KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
 
 ##@ Build
 
@@ -78,7 +80,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 # (i.e. docker build --platform linux/arm64 ). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
-docker-build: test ## Build docker image with the manager.
+docker-build: ## Build docker image with the manager.
 	docker build -t ${IMG} .
 
 .PHONY: docker-push
@@ -192,11 +194,11 @@ delete-cluster: check-tools
 # docker pull registry.cn-hangzhou.aliyuncs.com/hinsteny/nacos-standlone-rc3:1.0.0-RC3
 .PHONY: kube-load-image
 kube-load-image: check-tools ## Install the Higress image to a kind cluster using the provided $IMAGE and $TAG.
-	hack/kind-load-image.sh higress-registry.cn-hangzhou.cr.aliyuncs.com/higress/higress $(TAG)
-	hack/docker-pull-image.sh registry.cn-hangzhou.aliyuncs.com/hinsteny/dubbo-provider-demo 0.0.1
-	hack/docker-pull-image.sh registry.cn-hangzhou.aliyuncs.com/hinsteny/nacos-standlone-rc3 1.0.0-RC3
-	hack/kind-load-image.sh registry.cn-hangzhou.aliyuncs.com/hinsteny/dubbo-provider-demo 0.0.1
-	hack/kind-load-image.sh registry.cn-hangzhou.aliyuncs.com/hinsteny/nacos-standlone-rc3 1.0.0-RC3
+	hack/kind-load-image.sh ${HUB} $(TAG)
+#	hack/docker-pull-image.sh registry.cn-hangzhou.aliyuncs.com/hinsteny/dubbo-provider-demo 0.0.1
+#	hack/docker-pull-image.sh registry.cn-hangzhou.aliyuncs.com/hinsteny/nacos-standlone-rc3 1.0.0-RC3
+#	hack/kind-load-image.sh registry.cn-hangzhou.aliyuncs.com/hinsteny/dubbo-provider-demo 0.0.1
+#	hack/kind-load-image.sh registry.cn-hangzhou.aliyuncs.com/hinsteny/nacos-standlone-rc3 1.0.0-RC3
 
 .PHONY: install-dev
 install-dev: install deploy
@@ -206,6 +208,8 @@ install-dev: install deploy
 .PHONY: run-higress-operator-test
 run-higress-operator-test:
 	@echo -e "\n\033[36mRunning higress operator tests...\033[0m"
+	@echo -e "\n\033[36mWaiting higress-operator-controller-manager to be ready...\033[0m\n"
+	kubectl wait --timeout=10m -n higress-system deployment/higress-operator-controller-manager --for=condition=Available
 	@echo -e "\n\033[36mWaiting higress-controller to be ready...\033[0m\n"
 	kubectl wait --timeout=10m -n higress-system deployment/higress-controller --for=condition=Available
 	@echo -e "\n\033[36mWaiting higress-gateway to be ready...\033[0m\n"

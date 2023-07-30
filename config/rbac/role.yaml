@@ -27,6 +27,33 @@ rules:
   - update
   - watch
 - apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - validatingwebhookconfigurations
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
   - apiextensions.k8s.io
   resources:
   - customresourcedefinitions
@@ -34,7 +61,9 @@ rules:
   - create
   - delete
   - get
+  - list
   - update
+  - watch
 - apiGroups:
   - apps
   resources:
@@ -49,6 +78,185 @@ rules:
   - update
   - watch
 - apiGroups:
+  - authentication.istio.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests
+  verbs:
+  - create
+  - delete
+  - get
+  - update
+  - watch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests/approval
+  verbs:
+  - create
+  - delete
+  - get
+  - update
+  - watch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests/status
+  verbs:
+  - create
+  - delete
+  - get
+  - update
+  - watch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - resourceNames=certificatesigningrequests/status
+  - signers
+  verbs:
+  - create
+  - delete
+  - get
+  - update
+  - watch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - resourceNames=kubernetes.io/legacy-unknown
+  - signers
+  verbs:
+  - approve
+- apiGroups:
+  - config.istio.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - extensions
+  resources:
+  - ingressclasses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - extensions
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - extensions
+  resources:
+  - ingresses/status
+  verbs:
+  - '*'
+- apiGroups:
+  - extensions.higress.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - extensions.higress.io
+  resources:
+  - wasmplugins
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - extensions.istio.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - multicluster.x-k8s.io
+  resources:
+  - serviceexports
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - multicluster.x-k8s.io
+  resources:
+  - serviceimports
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.higress.io
+  resources:
+  - http2rpcs
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.higress.io
+  resources:
+  - mcpbridges
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.istio.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - networking.k8s.io
   resources:
   - ingressclasses
@@ -56,6 +264,8 @@ rules:
   - create
   - delete
   - get
+  - list
+  - watch
 - apiGroups:
   - networking.k8s.io
   resources:
@@ -69,7 +279,17 @@ rules:
   resources:
   - ingresses/status
   verbs:
+  - '*'
   - update
+- apiGroups:
+  - networking.x-k8s.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - update
+  - watch
 - apiGroups:
   - operator.higress.io
   resources:
@@ -136,4 +356,28 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - rbac.istio.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - security.istio.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - telemetry.istio.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
   - watch

@@ -57,11 +57,52 @@ type HigressControllerReconciler struct {
 
 //+kubebuilder:rbac:groups=apps,resources=deployments;replicasets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods;services;services/finalizers;endpoints;persistentvolumeclaims;events;configmaps;secrets;serviceaccounts;namespaces,verbs=create;update;get;list;watch;patch;delete
+//+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
+
+//+kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=mutatingwebhookconfigurations,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=validatingwebhookconfigurations,verbs=get;list;watch;update
+
+//+kubebuilder:rbac:groups="authentication.istio.io",resources=*,verbs=get;list;watch
+
+//+kubebuilder:rbac:groups="certificates.k8s.io",resources=certificatesigningrequests,verbs=update;create;get;delete;watch
+//+kubebuilder:rbac:groups="certificates.k8s.io",resources=certificatesigningrequests/approval,verbs=update;create;get;delete;watch
+//+kubebuilder:rbac:groups="certificates.k8s.io",resources=certificatesigningrequests/status,verbs=update;create;get;delete;watch
+//+kubebuilder:rbac:groups="certificates.k8s.io",resources=signers;resourceNames=certificatesigningrequests/status,verbs=update;create;get;delete;watch
+//+kubebuilder:rbac:groups="certificates.k8s.io",resources=signers;resourceNames=kubernetes.io/legacy-unknown,verbs=approve
+
+//+kubebuilder:rbac:groups="config.istio.io",resources=*,verbs=get;list;watch
+//+kubebuilder:rbac:groups="discovery.k8s.io",resources=endpointslices,verbs=get;list;watch
+
+//+kubebuilder:rbac:groups="extensions",resources=ingressclasses,verbs=get;list;watch
+//+kubebuilder:rbac:groups="extensions",resources=ingresses,verbs=get;list;watch
+//+kubebuilder:rbac:groups="extensions",resources=ingresses/status,verbs=*
+
+//+kubebuilder:rbac:groups="networking.k8s.io",resources=ingressclasses,verbs=get;list;watch
+//+kubebuilder:rbac:groups="networking.k8s.io",resources=ingresses,verbs=get;list;watch
+//+kubebuilder:rbac:groups="networking.k8s.io",resources=ingresses/status,verbs=*
+
+//+kubebuilder:rbac:groups="extensions.higress.io",resources=wasmplugins,verbs=get;create;watch;list;update;patch
+//+kubebuilder:rbac:groups="extensions.higress.io",resources=*,verbs=get;list;watch
+
+//+kubebuilder:rbac:groups="gateway.networking.k8s.io",resources=*,verbs=get;list;watch;update
+
+//+kubebuilder:rbac:groups="multicluster.x-k8s.io",resources=serviceexports,verbs=get;list;watch;update;create;delete
+//+kubebuilder:rbac:groups="multicluster.x-k8s.io",resources=serviceimports,verbs=get;watch;list
+
+//+kubebuilder:rbac:groups="networking.higress.io",resources=http2rpcs,verbs=get;create;watch;list;update;patch
+//+kubebuilder:rbac:groups="networking.higress.io",resources=mcpbridges,verbs=get;create;watch;list;update;patch
+
+//+kubebuilder:rbac:groups="networking.istio.io",resources=*,verbs=get;list;watch
+//+kubebuilder:rbac:groups="rbac.istio.io",resources=*,verbs=get;list;watch
+//+kubebuilder:rbac:groups="security.istio.io",resources=*,verbs=get;list;watch
+//+kubebuilder:rbac:groups="telemetry.istio.io",resources=*,verbs=get;list;watch
+//+kubebuilder:rbac:groups="extensions.istio.io",resources=*,verbs=get;list;watch
+//+kubebuilder:rbac:groups="networking.x-k8s.io",resources=*,verbs=get;list;watch;update
 
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=list;watch;get
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=ingressclasses,verbs=get;create;delete
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses/status,verbs=update
-//+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;create;delete;update
+//+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;create;delete;update;watch;list
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings;roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
